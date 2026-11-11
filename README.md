@@ -80,6 +80,13 @@ src/
 └── test/java/projet/saik/      # Tests
 ```
 
-Le code actuellement présent initialise l'application Spring Boot et comprend
-un test de chargement du contexte. Les entités, services, contrôleurs et
-fonctionnalités métier décrits dans les spécifications restent à développer.
+L'interface comprend cinq vues Thymeleaf : le tableau de bord (`/`), les
+transports (`/transports`), le budget (`/budget`), le kit de sécurité
+(`/securite`) et le profil (`/profil`). Les voyages, titres, dépenses et
+informations de profil créés depuis ces écrans sont enregistrés dans le
+`localStorage` du navigateur.
+
+Les branches `database` consultées ne contiennent pas encore d'entités métier
+ou de services. Les données de l'interface ne sont donc pas persistées dans
+H2 ; les réservations partenaires, le compte utilisateur et les documents
+externes restent des services de démonstration non connectés.
