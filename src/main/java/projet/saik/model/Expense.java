@@ -14,15 +14,18 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
+//Entity représente une table dans la base de données, Table spécifie le nom de la table
 @Entity
 @Table(name = "expenses")
 public class Expense {
 
+    //@Id indique que c'est la clé primaire
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
+    
+    //description est obligatoire et unique, ne peut pas être null
+    @Column(nullable = false, unique = true)
     private String description;
 
     @Column(nullable = false)
