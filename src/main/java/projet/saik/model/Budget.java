@@ -32,6 +32,7 @@ public class Budget {
 
     //indique à Hibernate que la colonne est obligatoire et ne peut pas être null
     @Column(nullable = false)
+    // Montant prévisionnel saisi pour comparer le budget prévu au budget dépensé.
     private Double plannedTotal = 0.0;
 
     //Déclare relation OneToOne avec Trip, avec jointure sur la colonne trip_id, qui est obligatoire et unique
@@ -53,6 +54,7 @@ public class Budget {
     //getActualTotal() retourne la somme des montants des Expenses associées au Budget, en filtrant les Expenses avec montant non null
     @Transient
     public Double getActualTotal() {
+        // Une collection absente équivaut à un budget sans dépense.
         if (expenses == null) return 0.0;
         //utilise stream pour filtrer les Expenses avec montant non null, puis somme les montants
         return expenses.stream()

@@ -1,0 +1,36 @@
+/* Définit la palette claire et la police générale des pages d’authentification. */
+:root { color-scheme: light; font-family: "Plus Jakarta Sans", system-ui, sans-serif; color: #181d15; background: #f0f5e8; }
+/* Inclut les bordures et marges dans les dimensions calculées des éléments. */
+* { box-sizing: border-box; }
+/* Centre la carte sur la page et prévoit une hauteur minimale sur petits écrans. */
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+/* Présente le formulaire dans une carte blanche avec une largeur plafonnée. */
+.card { width: min(100%, 28rem); padding: 2.5rem; background: white; border-radius: 1rem; box-shadow: 0 12px 40px #1d33121a; }
+/* Met en évidence la marque au-dessus du titre de la page. */
+.brand { color: #456734; font-weight: 800; letter-spacing: .04em; }
+/* Hiérarchise le titre principal de la carte. */
+h1 { color: #081e02; font-size: 1.8rem; margin-bottom: .5rem; }
+/* Améliore le contraste et la lecture des textes secondaires. */
+p, small { color: #44483f; line-height: 1.5; }
+/* Aligne les champs du formulaire verticalement avec un espacement constant. */
+form { display: grid; gap: .6rem; margin-top: 1.5rem; }
+/* Sépare visuellement chaque libellé de son champ. */
+label { margin-top: .5rem; font-weight: 600; }
+/* Donne aux champs une taille et une bordure cohérentes. */
+input { width: 100%; padding: .8rem; border: 1px solid #c4c8bc; border-radius: .5rem; font: inherit; }
+/* Rend le focus clavier visible sur les éléments interactifs. */
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #829d72; outline-offset: 2px; }
+/* Met en forme le bouton d’envoi du formulaire. */
+button { margin-top: 1rem; padding: .85rem; border: 0; border-radius: .5rem; background: #1d3312; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+/* Modifie la couleur du bouton au survol. */
+button:hover { background: #456734; }
+/* Rend le lien de navigation facile à repérer. */
+a { color: #36582a; font-weight: 700; }
+/* Ajuste l’espacement du texte au bas de la carte. */
+.foot { margin-bottom: 0; font-size: .9rem; }
+/* Présente les messages d’information dans un encadré discret. */
+.message { padding: .75rem; background: #e8f4df; border-radius: .5rem; }
+/* Distingue clairement les messages d’erreur. */
+.error { color: #a31414; }
+/* Réduit les marges internes de la carte sur les petits écrans. */
+@media (max-width: 480px) { .card { padding: 1.5rem; } }
