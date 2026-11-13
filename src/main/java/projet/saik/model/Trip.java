@@ -65,7 +65,7 @@ public class Trip {
 
     public Trip() {}
 
-    // Calcule un texte d’état à partir des dates du séjour, sans stocker ce texte en base.
+    // @Transient indique à Hibernate que la méthode getTimeRemaining() ne correspond pas à une colonne de la table SQL, mais est calculée à partir des dates du voyage
     @Transient
     public String getTimeRemaining() {
         // Sans dates, aucun état temporel ne peut être calculé.
@@ -105,7 +105,8 @@ public class Trip {
     public void setCountries(Set<Country> countries) { this.countries = countries; }
 
     public Budget getBudget() { return budget; }
-    // Synchronise les deux côtés de la relation voyage-budget.
+    // Synchronise les deux côtés de la relation voyage-budget
+    // Si le budget est défini, il s’assure que le voyage associé au budget est bien celui-ci.
     public void setBudget(Budget budget) {
         this.budget = budget;
         if (budget != null && budget.getTrip() != this) {

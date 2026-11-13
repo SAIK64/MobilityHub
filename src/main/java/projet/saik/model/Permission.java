@@ -1,23 +1,30 @@
 package projet.saik.model;
 
-import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.Table;
+
 @Entity
 @Table(name = "permissions")
-// Entité décrivant une autorisation précise attribuable à un rôle.
+// Entité décrivant une autorisation précise donnant ainsi des accès particuliers 
 public class Permission {
 
+    // Identifiant unique de la permission
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Nom unique de l’autorisation, par exemple TRIP_READ.
     @Column(nullable = false, unique = true)
     private String name;
 
-    // Liste inverse des rôles qui possèdent cette permission.
+    // plusieurs rôles peuvent avoir la même permission, et un rôle peut avoir plusieurs permissions
     @ManyToMany(mappedBy = "permissions")
     private Set<Role> roles = new HashSet<>();
 

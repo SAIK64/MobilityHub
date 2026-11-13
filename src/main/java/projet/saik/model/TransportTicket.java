@@ -31,11 +31,14 @@ public class TransportTicket {
     private String attachmentName;
 
     // Voyage auquel appartient le titre.
+    // FetchType.LAZY pour que la récupération du voyage associé à un titre ne se fasse que si nécessaire, ce qui améliore les performances
+    // exemple : si on récupère un titre de transport, on ne récupère pas automatiquement le voyage associé, sauf si on y accède explicitement
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
     private Trip trip;
 
-    // Dépense créée automatiquement à partir du prix de ce titre, s’il y en a une.
+    // Dépense créée automatiquement à partir du prix de ce titre, s’il y en a une
+    // un titre de transport peut générer une dépense, mais une dépense peut ne pas être associée à un titre de transport
     @OneToOne
     @JoinColumn(name = "expense_id", unique = true)
     private Expense generatedExpense;

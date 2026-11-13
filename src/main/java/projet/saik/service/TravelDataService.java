@@ -353,7 +353,9 @@ public class TravelDataService {
                 country == null ? "" : country.getName(),
                 country == null ? "" : country.getCodeIso(),
                 trip.getStartDate(),
-                trip.getEndDate());
+                trip.getEndDate(),
+                trip.getCountries().size()
+            );
     }
 
     // Convertit un titre JPA vers le format stable attendu par l’interface.

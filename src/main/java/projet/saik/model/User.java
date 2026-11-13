@@ -35,11 +35,11 @@ public class User {
     @Column(nullable = false)
     private String lastName;
 
-    // Adresse de connexion, qui doit être unique dans la base.
+    // Adresse de connexion, qui doit être unique dans la base et pas nulle
     @Column(nullable = false, unique = true)
     private String email;
 
-    // Mot de passe conservé sous forme d’empreinte BCrypt.
+    // Mot de passe 
     @Column(nullable = false)
     private String password;
 
@@ -52,7 +52,9 @@ public class User {
     // Numéro de passeport, s’il est renseigné.
     private String passport;
 
-    // Charge les rôles pour que Spring Security puisse établir les autorisations du compte.
+    // relation ManyToMany entre User et Role, avec une table d’association users_roles
+    // Un utilisateur peut avoir plusieurs rôles, et un rôle peut être attribué à plusieurs
+    // FetchType.EAGER pour que les rôles soient chargés immédiatement avec l’utilisateur, ce qui est utile pour les contrôles d’accès
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "users_roles",
@@ -74,6 +76,7 @@ public class User {
         if (trips == null) return 0;
         // Ne retient que les voyages terminés avant aujourd’hui.
         LocalDate today = LocalDate.now();
+        // flux pour filtrer les voyages terminés, puis récupérer les pays associés, et compter les pays distincts
         return (int) trips.stream()
                 .filter(trip -> trip.getEndDate() != null && trip.getEndDate().isBefore(today))
                 .flatMap(trip -> trip.getCountries().stream())

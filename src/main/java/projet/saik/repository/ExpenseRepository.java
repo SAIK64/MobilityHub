@@ -16,6 +16,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<Expense> findByBudgetIdAndCategory(Long budgetId, String category);
 
     // Additionne les montants par catégorie pour produire une répartition budgétaire.
+    //@Query permet de saisir une requête personnalisée en Java Persistence Query Language (JPQL) 
     @Query("SELECT e.category, SUM(e.amount) FROM Expense e WHERE e.budget.id = :budgetId GROUP BY e.category")
     List<Object[]> sumAmountByCategory(@Param("budgetId") Long budgetId);
 }

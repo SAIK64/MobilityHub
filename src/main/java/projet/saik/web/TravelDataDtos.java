@@ -43,8 +43,11 @@ public final class TravelDataDtos {
             // Date de départ enregistrée.
             LocalDate start,
             // Date de retour enregistrée.
-            LocalDate end) {
+            LocalDate end,
+            // Nombre de pays visités.
+            int countryCount) {
     }
+    
 
     // Reçoit les détails d’un titre de transport à enregistrer.
     public record TicketRequest(

@@ -6,22 +6,23 @@ import java.util.Set;
 
 @Entity
 @Table(name = "roles")
-// Entité représentant un rôle de sécurité attribuable à des comptes.
+// Entité représentant un rôle de sécurité attribuable à des comptes
 public class Role {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Nom unique du rôle utilisé par les règles de sécurité.
+    // Nom unique du rôle utilisé par les règles de sécurité
     @Column(nullable = false, unique = true)
     private String name;
 
-    // Liste inverse des comptes auxquels ce rôle est attribué.
+    // Liste inverse des comptes auxquels ce rôle est attribué
     @ManyToMany(mappedBy = "roles")
     private Set<User> users = new HashSet<>();
 
-    // Charge les permissions du rôle pour les contrôles d’accès.
+    // Charge les permissions du rôle pour les contrôles d’accès
+    // fais le lien entre la table des rôles et la table des permissions via une table d’association
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "roles_permissions",
