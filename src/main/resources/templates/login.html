@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <!-- Métadonnées du navigateur et feuille de style commune aux pages d’authentification. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — SAIK</title>
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body>
+  <!-- Carte centrale qui présente le formulaire et les retours de connexion. -->
+  <main class="card">
+    <p class="brand">SAIK Travel</p>
+    <h1>Bon retour parmi nous</h1>
+    <p>Connectez-vous pour retrouver vos voyages.</p>
+    <p class="message error" th:if="${param.error}" role="alert">E-mail ou mot de passe incorrect.</p>
+    <p class="message" th:if="${param.registered}" role="status">Votre compte est créé. Vous pouvez vous connecter.</p>
+    <p class="message" th:if="${param.logout}" role="status">Vous êtes déconnecté.</p>
+    <!-- Spring Security reçoit ces champs pour authentifier la session web. -->
+    <form method="post" th:action="@{/login}">
+      <label for="username">Adresse e-mail</label>
+      <input id="username" name="username" type="email" autocomplete="username" required autofocus>
+      <label for="password">Mot de passe</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button type="submit">Se connecter</button>
+    </form>
+    <p class="foot">Pas encore de compte ? <a href="/register">Créer un compte</a></p>
+  </main>
+</body>
+</html>

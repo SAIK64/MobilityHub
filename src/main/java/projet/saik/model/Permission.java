@@ -6,15 +6,18 @@ import java.util.Set;
 
 @Entity
 @Table(name = "permissions")
+// Entité décrivant une autorisation précise attribuable à un rôle.
 public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Nom unique de l’autorisation, par exemple TRIP_READ.
     @Column(nullable = false, unique = true)
     private String name;
 
+    // Liste inverse des rôles qui possèdent cette permission.
     @ManyToMany(mappedBy = "permissions")
     private Set<Role> roles = new HashSet<>();
 
