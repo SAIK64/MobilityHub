@@ -1,0 +1,116 @@
+package projet.saik;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import projet.saik.repository.BudgetRepository;
+import projet.saik.repository.ExpenseRepository;
+import projet.saik.repository.TransportTicketRepository;
+import projet.saik.repository.TripRepository;
+import projet.saik.service.TravelDataService;
+import projet.saik.service.AccountService;
+import projet.saik.web.TravelDataDtos.ExpenseRequest;
+import projet.saik.web.TravelDataDtos.ProfileRequest;
+import projet.saik.web.TravelDataDtos.TicketRequest;
+import projet.saik.web.TravelDataDtos.TripRequest;
+
+@SpringBootTest(properties = {
+        // Utilise une base mémoire isolée pour que le test ne touche pas aux données locales.
+        "spring.datasource.url=jdbc:h2:mem:saik-api-test;DB_CLOSE_DELAY=-1",
+        // Crée puis supprime les tables de test automatiquement.
+        "spring.jpa.hibernate.ddl-auto=create-drop"
+})
+@Transactional
+// Vérifie le comportement du service avec une vraie base de données de test.
+class TravelDataServiceTests {
+
+    @Autowired
+    private TravelDataService travelDataService;
+
+    @Autowired
+    private TripRepository tripRepository;
+
+    @Autowired
+    private TransportTicketRepository ticketRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
+
+    @Autowired
+    private BudgetRepository budgetRepository;
+
+    @Autowired
+    private AccountService accountService;
+
+    @BeforeEach
+    // Crée un compte puis place son identifiant dans le contexte de sécurité pour le test.
+    void authenticate() {
+        var user = accountService.register("etudiant@example.test", "motdepasse-test");
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(user.getId().toString(), null, java.util.List.of()));
+    }
+
+    @AfterEach
+    // Nettoie le contexte pour que l’authentification ne déborde pas sur un autre test.
+    void clearAuthentication() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    // Vérifie la création du voyage, du billet et des dépenses, puis leur suppression liée.
+    void persistsTripTicketAndExpensesAndRemovesGeneratedTicketExpense() {
+        // Crée un séjour et vérifie que la base lui a attribué un identifiant.
+        var trip = travelDataService.createTrip(new TripRequest(
+                "Séjour test", "France", "FR",
+                LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
+        assertNotNull(trip.id());
+        // Confirme qu’un seul voyage est enregistré dans ce test.
+        assertEquals(1, tripRepository.count());
+
+        // Ajoute un billet de train au voyage et vérifie la dépense de transport générée.
+        var ticket = travelDataService.createTicket(trip.id(), new TicketRequest(
+                "Train", "TGV test", "Paris", "Lyon",
+                LocalDateTime.of(2030, 4, 10, 9, 0), null, 49.5, "TEST-1", null));
+        assertNotNull(ticket.id());
+        assertEquals(1, ticketRepository.count());
+        assertEquals(1, expenseRepository.count());
+
+        // Ajoute ensuite une dépense manuelle et contrôle le total du budget.
+        travelDataService.createExpense(trip.id(), new ExpenseRequest(
+                "Repas test", 12.5, LocalDate.of(2030, 4, 11),
+                "Restauration", "Carte", null, false));
+        assertEquals(2, expenseRepository.count());
+        assertEquals(62.0, budgetRepository.findByTripId(trip.id()).orElseThrow().getActualTotal(), 0.001);
+
+        // Supprime le billet et vérifie que seule la dépense manuelle subsiste.
+        travelDataService.deleteTicket(ticket.id());
+        assertEquals(0, ticketRepository.count());
+        assertEquals(1, expenseRepository.count());
+    }
+
+    @Test
+    // Vérifie qu’un changement d’adresse e-mail est conservé pendant toute la session de test.
+    void profileUpdateRemainsAvailableAfterEmailChange() {
+        // Remplace les informations du profil par une nouvelle adresse.
+        var updated = travelDataService.updateProfile(new ProfileRequest(
+                "Étudiant", "Démo", "", "Française",
+                "nouveau@example.test", "", ""));
+
+        // Vérifie la réponse de mise à jour et les lectures suivantes du profil.
+        assertEquals("nouveau@example.test", updated.email());
+        assertEquals("Étudiant", travelDataService.getProfile().firstName());
+        assertEquals("nouveau@example.test", travelDataService.getProfile().email());
+    }
+}

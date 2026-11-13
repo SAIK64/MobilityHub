@@ -42,6 +42,7 @@ donc pas renseignés ici.
 - Java 17
 - Spring Boot 4.1.2
 - Spring MVC et Thymeleaf pour l'application web
+- Spring Security pour l'authentification et BCrypt pour les mots de passe
 - Spring Data JPA pour la persistance
 - H2 comme base de données embarquée
 - Maven, avec Maven Wrapper
@@ -83,10 +84,81 @@ src/
 L'interface comprend cinq vues Thymeleaf : le tableau de bord (`/`), les
 transports (`/transports`), le budget (`/budget`), le kit de sécurité
 (`/securite`) et le profil (`/profil`). Les voyages, titres, dépenses et
-informations de profil créés depuis ces écrans sont enregistrés dans le
-`localStorage` du navigateur.
+informations de profil modifiables sont envoyés aux routes `/api/...` et
+persistés par Spring Data JPA dans la base H2 locale `./data/saikdb`.
+Hibernate crée ou met à jour les tables à partir des entités Java.
+Les principales routes sont `/api/trips`, `/api/trips/{id}/tickets`,
+`/api/trips/{id}/expenses` et `/api/profile`.
 
-Les branches `database` consultées ne contiennent pas encore d'entités métier
-ou de services. Les données de l'interface ne sont donc pas persistées dans
-H2 ; les réservations partenaires, le compte utilisateur et les documents
-externes restent des services de démonstration non connectés.
+## Authentification
+
+Créer un compte sur `/register`, puis se connecter sur `/login` avec son e-mail
+et son mot de passe. L'adresse e-mail est normalisée en minuscules ; le mot
+de passe doit contenir au moins 8 caractères et au plus 72 octets. Il est
+enregistré sous forme d'empreinte BCrypt. Les pages et données de voyage
+nécessitent une connexion ; chaque compte ne peut accéder qu'à ses propres
+voyages, billets, dépenses et profil. La déconnexion est disponible dans
+l'en-tête. Les requêtes modifiant les données et la déconnexion sont protégées
+contre les attaques CSRF.
+
+Les routes de la branche `security` sont également disponibles :
+
+- `POST /api/v1/auth/register` accepte `{"email":"...","password":"..."}`.
+- `POST /api/v1/auth/login` accepte les mêmes champs et retourne un jeton
+  `Bearer` (`token`, `type`, `expiresInSeconds`).
+- Pour les autres routes `/api/...`, transmettre ce jeton dans l'en-tête
+  `Authorization: Bearer <token>` ; l'interface web utilise quant à elle une
+  session et un jeton CSRF.
+
+La durée de validité par défaut du jeton est de 60 minutes, configurable via
+`APP_JWT_EXPIRATION_MINUTES`. Pour conserver les jetons après un redémarrage,
+définir `APP_JWT_SECRET` avec un secret aléatoire d'au moins 32 octets, gardé
+hors du dépôt. Sans cette variable, une clé aléatoire temporaire est générée
+au démarrage et les jetons expirent au redémarrage. La déconnexion web invalide
+la session, mais ne révoque pas les jetons API déjà émis.
+
+Pour une base existante contenant l'ancien compte de démonstration,
+sauvegarder d'abord `data/saikdb.mv.db`, puis définir la variable
+`SAIK_LEGACY_DEMO_PASSWORD` avec un **nouveau** mot de passe conforme avant le
+premier démarrage. L'ancien mot de passe de démonstration est remplacé par une
+empreinte BCrypt ; les données existantes restent associées au compte. Le
+démarrage échoue explicitement tant que ce nouveau mot de passe n'est pas
+fourni. Une fois la migration réussie, retirer cette variable. Les autres mots
+de passe historiques en clair sont également convertis en BCrypt au démarrage.
+Sur une base neuve, aucun compte de démonstration n'est créé.
+
+### Compte de démonstration Iris
+
+Pour créer volontairement le compte du template, définir un mot de passe
+personnel d'au moins 8 caractères et de 72 octets maximum dans
+`SAIK_IRIS_DEMO_PASSWORD`, puis démarrer l'application. Par exemple :
+
+```bash
+read -rs -p "Mot de passe du compte Iris : " SAIK_IRIS_DEMO_PASSWORD; echo
+export SAIK_IRIS_DEMO_PASSWORD
+./mvnw spring-boot:run
+```
+
+Le compte utilise l'adresse fictive `iris.geyer@email.com` du template et le
+mot de passe choisi, stocké avec BCrypt. Son profil et le voyage « Chine —
+Découverte & Aventure », du 1er au 21 mars 2026, sont enregistrés en base avec
+un budget vide. Les autres éléments présentés par le template (itinéraire,
+réservations et dépenses) restent des exemples visuels : ils ne sont pas
+enregistrés automatiquement. Ce séjour est passé et apparaît donc archivé.
+
+La création est facultative et ne se produit qu'au démarrage lorsque la variable
+est renseignée. Si un compte avec cette adresse existe déjà, il n'est jamais
+modifié et son mot de passe n'est pas réinitialisé. Après création, retirer la
+variable de l'environnement pour éviter de recréer le compte s'il est supprimé.
+Si l'ancienne base contient le compte de démonstration historique, suivre aussi
+les instructions de migration ci-dessus.
+
+La console H2 est désactivée et bloquée par défaut. Avant une mise en
+production, utiliser HTTPS, gérer les secrets et la base de façon appropriée,
+et ajouter notamment une limitation des tentatives de connexion ainsi qu'une
+procédure sécurisée de réinitialisation des mots de passe.
+
+Les réservations auprès de partenaires ne sont pas connectées ;
+les pièces jointes ne conservent que leur nom de fichier et ne sont pas
+téléversées. Les actions de sécurité et de compte qui nécessitent un service
+externe restent explicitement indiquées comme non connectées.

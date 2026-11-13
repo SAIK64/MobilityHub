@@ -39,7 +39,8 @@ build/
 application-local.properties
 application-dev.properties
 
-### BDD H2 (fichiers temporaires uniquement) ###
+### BDD H2 (fichiers locaux non versionnés) ###
+data/*.mv.db
 *.lock.db
 *.trace.db
 

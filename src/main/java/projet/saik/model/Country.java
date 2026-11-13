@@ -6,18 +6,22 @@ import java.util.Set;
 
 @Entity
 @Table(name = "countries")
+// Entité représentant un pays pouvant être associé à plusieurs voyages.
 public class Country {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Nom lisible du pays affiché dans l’application.
     @Column(nullable = false)
     private String name;
 
+    // Code ISO utilisé pour identifier le pays sans ambiguïté.
     @Column(nullable = false, unique = true, length = 3)
     private String codeIso;
 
+    // Relation inverse vers les voyages associés à ce pays.
     @ManyToMany(mappedBy = "countries")
     private Set<Trip> trips = new HashSet<>();
 
