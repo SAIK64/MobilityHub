@@ -19,6 +19,7 @@ import projet.saik.repository.UserRepository;
 public class DataInitializer {
 
     @Bean
+    @SuppressWarnings("unused")
     CommandLineRunner initDatabase(
             PermissionRepository permissionRepo,
             RoleRepository roleRepo,
