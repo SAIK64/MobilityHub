@@ -31,3 +31,20 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets & Clés API ###
+.env
+.env.*
+!.env.example
+application-local.properties
+application-dev.properties
+
+### BDD H2 (fichiers locaux non versionnés) ###
+data/*.mv.db
+*.lock.db
+*.trace.db
+
+### Logs & Système (dépôt partagé) ###
+*.log
+.DS_Store
+Thumbs.db
