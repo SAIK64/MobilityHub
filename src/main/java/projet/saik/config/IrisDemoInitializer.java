@@ -50,10 +50,8 @@ public class IrisDemoInitializer {
                     return;
                 }
                 // Crée le compte avec le mécanisme d’inscription qui encode le mot de passe.
-                var iris = accounts.register(EMAIL, password);
+                var iris = accounts.register(EMAIL, password, "Iris", "Geyer");
                 // Remplit les informations de profil de démonstration.
-                iris.setFirstName("Iris");
-                iris.setLastName("Geyer");
                 iris.setBirthDate("14 Mai 2004");
                 iris.setNationality("Française");
                 iris.setPhone("+33 6 12 34 56 78");

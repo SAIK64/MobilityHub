@@ -114,7 +114,7 @@ public class SecurityConfig {
     SecurityFilterChain web(HttpSecurity http) throws Exception {
         // Définit l’accès aux pages publiques, à la console H2 et aux routes d’administration.
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/error", "/js/**", "/css/**", "/images/**").permitAll()
+                .requestMatchers("/", "/accueil", "/login", "/register", "/error", "/js/**", "/css/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").denyAll()
                 .requestMatchers("/admin/**", "/api/v1/students", "/api/v1/mobilities/pending").hasRole("ADMIN")
                 .anyRequest().authenticated())

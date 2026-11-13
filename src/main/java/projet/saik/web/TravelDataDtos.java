@@ -1,6 +1,7 @@
 package projet.saik.web;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.time.LocalDateTime;
 
 import jakarta.validation.constraints.DecimalMin;
@@ -9,7 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-// Regroupe les formats JSON échangés entre le navigateur et l’API.
+// définit les formats de données JSON échangés pour les voyages, dépenses, billets et profils.
 public final class TravelDataDtos {
 
     // Empêche de créer une instance de cette classe utilitaire.
@@ -65,7 +66,76 @@ public final class TravelDataDtos {
             // Référence de réservation facultative.
             String reference,
             // Nom du fichier justificatif sélectionné, sans téléverser le fichier.
-            String attachmentName) {
+            String attachmentName,
+            // Détails propres aux billets d’avion ; absents pour les autres transports.
+            FlightDetailsRequest flightDetails) {
+        public TicketRequest(String type, String description, String departure, String arrival,
+                LocalDateTime departureTime, LocalDateTime arrivalTime, Double price,
+                String reference, String attachmentName) {
+            this(type, description, departure, arrival, departureTime, arrivalTime, price,
+                    reference, attachmentName, null);
+        }
+    }
+
+    public record FlightDetailsRequest(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes) {
+    }
+
+    public record FlightDetailsResponse(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes,
+            Long durationMinutes) {
     }
 
     // Présente au navigateur un titre de transport enregistré.
@@ -89,7 +159,23 @@ public final class TravelDataDtos {
             // Référence associée à la réservation.
             String reference,
             // Nom du justificatif sélectionné.
-            String attachmentName) {
+            String attachmentName,
+            // Détails complémentaires présents uniquement pour un billet d’avion.
+            FlightDetailsResponse flightDetails) {
+    }
+
+
+    // Budgets reçus : total facultatif et montant alloué à chaque catégorie.
+    public record BudgetRequest(
+            @DecimalMin("0.0") Double plannedTotal,
+            Map<String, Double> categoryBudgets) {
+    }
+
+    // Budgets renvoyés au navigateur avec le total dépensé.
+    public record BudgetResponse(
+            Double plannedTotal,
+            Double actualTotal,
+            Map<String, Double> categoryBudgets) {
     }
 
     // Reçoit les données nécessaires à la création d’une dépense.

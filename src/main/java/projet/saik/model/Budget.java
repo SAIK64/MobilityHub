@@ -1,11 +1,16 @@
 package projet.saik.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 
 //utilisé par hibernate pour traduire la classe JAVA en table SQL H2
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,6 +53,13 @@ public class Budget {
     private List<Expense> expenses = new ArrayList<>();
 
     //Constructeur 
+    // Budget alloué à chaque catégorie de dépense.
+    @ElementCollection
+    @CollectionTable(name = "budget_category_limits", joinColumns = @JoinColumn(name = "budget_id"))
+    @MapKeyColumn(name = "category")
+    @Column(name = "amount", nullable = false)
+    private Map<String, Double> categoryBudgets = new LinkedHashMap<>();
+
     public Budget() {}
 
     //indique à Hibernate que la méthode getActualTotal() ne correspond pas à une colonne de la table SQL, mais est calculée à partir des Expenses associées
@@ -66,7 +78,10 @@ public class Budget {
     //getRemainingForecast() retourne la différence entre le montant total prévu et le montant total réel des Expenses associées au Budget
     @Transient
     public Double getRemainingForecast() {
-        double planned = plannedTotal != null ? plannedTotal : 0.0;
+        double planned = 0.0;
+        if (plannedTotal != null) {
+            planned = plannedTotal.doubleValue();
+        }
         return planned - getActualTotal();
     }
 
@@ -81,6 +96,9 @@ public class Budget {
     public void setTrip(Trip trip) { this.trip = trip; }
 
     //recuperer la liste des dépenses associées au budget
+    public Map<String, Double> getCategoryBudgets() { return categoryBudgets; }
+    public void setCategoryBudgets(Map<String, Double> categoryBudgets) { this.categoryBudgets = categoryBudgets; }
+
     public List<Expense> getExpenses() { return expenses; }
     public void setExpenses(List<Expense> expenses) { this.expenses = expenses; }
 }

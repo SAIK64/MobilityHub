@@ -30,6 +30,9 @@ public class TransportTicket {
     // Nom du justificatif choisi, sans enregistrer le fichier lui-même.
     private String attachmentName;
 
+    @Embedded
+    private FlightDetails flightDetails;
+
     // Voyage auquel appartient le titre.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
@@ -83,6 +86,9 @@ public class TransportTicket {
     public String getAttachmentName() { return attachmentName; }
     // Enregistre le nom du justificatif, sans stocker son contenu.
     public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
+
+    public FlightDetails getFlightDetails() { return flightDetails; }
+    public void setFlightDetails(FlightDetails flightDetails) { this.flightDetails = flightDetails; }
 
     public Trip getTrip() { return trip; }
     public void setTrip(Trip trip) { this.trip = trip; }

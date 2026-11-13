@@ -81,7 +81,16 @@ src/
 └── test/java/projet/saik/      # Tests
 ```
 
-L'interface comprend cinq vues Thymeleaf : le tableau de bord (`/`), les
+La page d'accueil publique est accessible sur `/` et `/accueil` ; elle présente
+l'application et donne accès à la connexion et à l'inscription. Après
+connexion, `/` affiche le tableau de bord.
+
+Les pages partagent la palette et les composants définis dans [DESIGN.md](./DESIGN.md).
+Leur navigation commune se trouve dans `templates/fragments/layout.html` ;
+les styles et paramètres partagés sont dans `static/css/design.css` et
+`static/js/design-tokens.js`.
+
+L'interface connectée comprend cinq vues Thymeleaf : le tableau de bord (`/` ou `/dashboard`), les
 transports (`/transports`), le budget (`/budget`), le kit de sécurité
 (`/securite`) et le profil (`/profil`). Les voyages, titres, dépenses et
 informations de profil modifiables sont envoyés aux routes `/api/...` et
@@ -142,9 +151,8 @@ export SAIK_IRIS_DEMO_PASSWORD
 Le compte utilise l'adresse fictive `iris.geyer@email.com` du template et le
 mot de passe choisi, stocké avec BCrypt. Son profil et le voyage « Chine —
 Découverte & Aventure », du 1er au 21 mars 2026, sont enregistrés en base avec
-un budget vide. Les autres éléments présentés par le template (itinéraire,
-réservations et dépenses) restent des exemples visuels : ils ne sont pas
-enregistrés automatiquement. Ce séjour est passé et apparaît donc archivé.
+un budget vide. Les billets et dépenses ne sont pas créés automatiquement.
+Ce séjour est passé et apparaît donc archivé.
 
 La création est facultative et ne se produit qu'au démarrage lorsque la variable
 est renseignée. Si un compte avec cette adresse existe déjà, il n'est jamais
@@ -157,6 +165,14 @@ La console H2 est désactivée et bloquée par défaut. Avant une mise en
 production, utiliser HTTPS, gérer les secrets et la base de façon appropriée,
 et ajouter notamment une limitation des tentatives de connexion ainsi qu'une
 procédure sécurisée de réinitialisation des mots de passe.
+
+La page de sécurité affiche le voyage sélectionné et renvoie vers les conseils
+officiels : elle ne fournit pas de numéros d'urgence par destination et ne
+transmet aucune alerte.
+
+Le profil affiche les informations enregistrées du compte. L'âge est calculé
+à partir de la date de naissance ; saisir celle-ci au format `AAAA-MM-JJ` ou
+avec un mois en français, puis enregistrer les modifications.
 
 Les réservations auprès de partenaires ne sont pas connectées ;
 les pièces jointes ne conservent que leur nom de fichier et ne sont pas

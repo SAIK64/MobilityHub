@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import projet.saik.service.TravelDataService;
+import projet.saik.web.TravelDataDtos.BudgetRequest;
+import projet.saik.web.TravelDataDtos.BudgetResponse;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
 import projet.saik.web.TravelDataDtos.ExpenseResponse;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
@@ -76,6 +78,18 @@ public class TravelDataController {
         travelDataService.deleteTicket(ticketId);
         // Répond avec le statut HTTP 204, qui indique que la suppression a réussi sans contenu.
         return ResponseEntity.noContent().build();
+    }
+
+    // Retourne les budgets d’un voyage.
+    @GetMapping("/trips/{tripId}/budget")
+    public BudgetResponse getBudget(@PathVariable Long tripId) {
+        return travelDataService.getBudget(tripId);
+    }
+
+    // Définit les budgets par catégorie d’un voyage.
+    @PutMapping("/trips/{tripId}/budget")
+    public BudgetResponse updateBudget(@PathVariable Long tripId, @Valid @RequestBody BudgetRequest request) {
+        return travelDataService.updateBudget(tripId, request);
     }
 
     // Retourne les dépenses d’un voyage.

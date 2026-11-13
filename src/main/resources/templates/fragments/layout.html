@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="publicHeader(showDiscover)" class="header public-header">
+  <a class="brand" href="/accueil" th:href="@{/accueil}"><span class="brand-mark" aria-hidden="true">S</span> SAIK Travel</a>
+  <nav aria-label="Navigation principale">
+    <a class="nav-link discover-link" href="#decouvrir" th:if="${showDiscover}">Découvrir</a>
+    <a class="nav-link" href="/login" th:href="@{/login}">Se connecter</a>
+    <a class="button button-small" href="/register" th:href="@{/register}">S'inscrire</a>
+  </nav>
+</header>
+<header th:fragment="appHeader" class="fixed top-0 left-0 right-0 z-50 h-16 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+  <div class="w-full h-full px-gutter flex items-center justify-between gap-space-md">
+    <a class="flex items-center gap-space-sm" href="/dashboard" th:href="@{/dashboard}">
+      <span aria-hidden="true" class="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center font-bold">S</span>
+      <span class="flex flex-col">
+        <span class="font-headline-sm text-headline-sm text-primary leading-tight font-bold tracking-tight">SAIK Travel</span>
+        <span class="font-label-md text-label-md text-on-surface-variant">Carnet de voyage</span>
+      </span>
+    </a>
+    <span class="hidden xl:block font-label-md text-label-md text-on-surface-variant truncate max-w-xs" data-selected-trip>Chargement du voyage sélectionné…</span>
+    <button class="flex items-center gap-space-xs bg-primary text-on-primary font-label-lg text-label-lg px-space-md py-2 rounded-lg hover:bg-primary-container transition-colors shrink-0" type="button" aria-label="Nouveau voyage">
+      <span class="material-symbols-outlined text-[18px]" aria-hidden="true">add</span>
+      <span class="hidden sm:inline">Nouveau voyage</span>
+    </button>
+  </div>
+</header>
+
+<aside th:fragment="sidebar(active)" class="app-sidebar fixed left-0 top-16 bottom-0 w-64 bg-surface-container-low p-space-md z-40">
+  <details class="app-sidebar-details" open>
+    <summary class="app-sidebar-toggle">Navigation</summary>
+    <p class="px-space-sm font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Mon espace voyage</p>
+    <nav class="flex flex-col gap-1.5 mt-space-md" aria-label="Navigation principale">
+      <a href="/dashboard" th:href="@{/dashboard}" data-path="tableau-de-bord" th:attr="aria-current=${active == 'dashboard' ? 'page' : null}" th:classappend="${active == 'dashboard' ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg font-label-lg text-label-lg transition-all">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">space_dashboard</span> Tableau de bord
+      </a>
+      <a href="/transports" th:href="@{/transports}" data-path="transports-&amp;-billets" th:attr="aria-current=${active == 'transports' ? 'page' : null}" th:classappend="${active == 'transports' ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg font-label-lg text-label-lg transition-all">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">airplane_ticket</span> Transports &amp; billets
+      </a>
+      <a href="/budget" th:href="@{/budget}" data-path="budget-&amp;-dépenses" th:attr="aria-current=${active == 'budget' ? 'page' : null}" th:classappend="${active == 'budget' ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg font-label-lg text-label-lg transition-all">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">account_balance_wallet</span> Budget &amp; dépenses
+      </a>
+      <a href="/securite" th:href="@{/securite}" data-path="kit-de-survie-&amp;-urgences" th:attr="aria-current=${active == 'securite' ? 'page' : null}" th:classappend="${active == 'securite' ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg font-label-lg text-label-lg transition-all">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">medical_services</span> Kit de survie &amp; urgences
+      </a>
+      <a href="/profil" th:href="@{/profil}" data-path="mon-profil" th:attr="aria-current=${active == 'profil' ? 'page' : null}" th:classappend="${active == 'profil' ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high'}" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-lg font-label-lg text-label-lg transition-all">
+        <span class="material-symbols-outlined text-[20px]" aria-hidden="true">badge</span> Mon profil
+      </a>
+    </nav>
+  </details>
+</aside>
+</body>
+</html>

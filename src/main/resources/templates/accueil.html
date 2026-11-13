@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SAIK Travel vous aide à organiser vos voyages et vos séjours.">
+  <title>Accueil — SAIK Travel</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="/css/design.css" th:href="@{/css/design.css}">
+  <link rel="stylesheet" href="/css/accueil.css" th:href="@{/css/accueil.css}">
+</head>
+<body>
+  <header th:replace="~{fragments/layout :: publicHeader(true)}"></header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-content">
+        <p class="eyebrow"><span aria-hidden="true">✦</span> Votre carnet de voyage</p>
+        <h1 id="hero-title">Le monde vous attend. <em>Partez l'esprit léger.</em></h1>
+        <p class="intro">Une nouvelle destination, mille souvenirs à créer. SAIK Travel vous aide à organiser vos voyages et séjours en toute simplicité.</p>
+        <div class="actions">
+          <a class="button" href="/register" th:href="@{/register}">Créer mon compte</a>
+          <a class="button button-secondary" href="/login" th:href="@{/login}">Se connecter</a>
+        </div>
+        <p class="hero-note">Votre prochaine aventure commence ici <span aria-hidden="true">↗</span></p>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-photo">
+          <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" alt="" fetchpriority="high">
+          <div class="photo-caption"><span>LE GOÛT DU DÉPART</span><strong>De nouveaux horizons<br>vous attendent.</strong></div>
+        </div>
+        <div class="floating-note"><span class="note-icon" aria-hidden="true">✦</span><span><strong>Votre voyage</strong><small>Bien organisé, en un seul endroit</small></span></div>
+        <span class="visual-accent" aria-hidden="true"></span>
+      </div>
+    </section>
+
+    <section id="decouvrir" class="features" aria-labelledby="features-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">Pensé pour vos aventures</p>
+        <h2 id="features-title">Moins d'organisation,<br><em>plus d'évasion.</em></h2></div>
+        <p>Des premiers préparatifs jusqu'au retour, retrouvez l'essentiel de vos voyages au même endroit.</p>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <span class="feature-number">01</span>
+          <h3>Vos voyages</h3>
+          <p>Créez vos séjours et retrouvez-les dans votre tableau de bord.</p>
+        </article>
+        <article>
+          <span class="feature-number">02</span>
+          <h3>Vos transports</h3>
+          <p>Gardez vos informations de transport et vos billets à portée de main.</p>
+        </article>
+        <article>
+          <span class="feature-number">03</span>
+          <h3>Votre budget</h3>
+          <p>Suivez les dépenses associées à chacun de vos voyages.</p>
+        </article>
+      </div>
+    </section>
+    <section class="inspiration" aria-labelledby="inspiration-title">
+      <div class="inspiration-images" aria-hidden="true">
+        <img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="" loading="lazy">
+        <img src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="" loading="lazy">
+      </div>
+      <div class="inspiration-content">
+        <p class="eyebrow">À vous de jouer</p>
+        <h2 id="inspiration-title">La prochaine histoire,<br><em>c'est la vôtre.</em></h2>
+        <p>Un week-end, un séjour ou une grande aventure : créez votre espace et préparez votre prochain départ.</p>
+        <a class="button" href="/register" th:href="@{/register}">Commencer l'aventure <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+  <footer><span><strong>SAIK Travel</strong> · Votre carnet de voyage</span><a href="/login" th:href="@{/login}">Se connecter</a></footer>
+</body>
+</html>

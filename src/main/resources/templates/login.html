@@ -5,11 +5,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Connexion — SAIK</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="/css/design.css" th:href="@{/css/design.css}">
+  <link rel="stylesheet" href="/css/accueil.css" th:href="@{/css/accueil.css}">
   <link rel="stylesheet" href="/css/auth.css">
 </head>
-<body>
+<body class="auth-page">
+  <header th:replace="~{fragments/layout :: publicHeader(false)}"></header>
   <!-- Carte centrale qui présente le formulaire et les retours de connexion. -->
   <main class="card">
+    <a class="back-link" href="/accueil" th:href="@{/accueil}">← Retour à l’accueil</a>
     <p class="brand">SAIK Travel</p>
     <h1>Bon retour parmi nous</h1>
     <p>Connectez-vous pour retrouver vos voyages.</p>

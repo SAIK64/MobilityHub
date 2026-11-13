@@ -1,17 +1,18 @@
 /* Définit la palette claire et la police générale des pages d’authentification. */
-:root { color-scheme: light; font-family: "Plus Jakarta Sans", system-ui, sans-serif; color: #181d15; background: #f0f5e8; }
+:root { color-scheme: light; font-family: "Plus Jakarta Sans", system-ui, sans-serif; color: var(--color-text); background: var(--color-surface); }
 /* Inclut les bordures et marges dans les dimensions calculées des éléments. */
 * { box-sizing: border-box; }
 /* Centre la carte sur la page et prévoit une hauteur minimale sur petits écrans. */
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+.auth-page { min-height: 100vh; display: flex; flex-direction: column; padding: 0; }
+.auth-page .public-header { flex: 0 0 auto; }
 /* Présente le formulaire dans une carte blanche avec une largeur plafonnée. */
-.card { width: min(100%, 28rem); padding: 2.5rem; background: white; border-radius: 1rem; box-shadow: 0 12px 40px #1d33121a; }
+.card { width: min(100% - 2rem, 28rem); margin: 3rem auto; padding: 2.5rem; background: var(--color-surface-card); border: 1px solid #d8e3d2; border-radius: 1rem; box-shadow: 0 2px 8px -2px #11160e0a; }
 /* Met en évidence la marque au-dessus du titre de la page. */
-.brand { color: #456734; font-weight: 800; letter-spacing: .04em; }
+.card .brand { color: var(--color-secondary); font-weight: 800; letter-spacing: .04em; }
 /* Hiérarchise le titre principal de la carte. */
-h1 { color: #081e02; font-size: 1.8rem; margin-bottom: .5rem; }
+.card h1 { max-width: none; color: var(--color-primary); font-size: 1.8rem; margin-bottom: .5rem; }
 /* Améliore le contraste et la lecture des textes secondaires. */
-p, small { color: #44483f; line-height: 1.5; }
+.card p, .card small { color: var(--color-text-muted); line-height: 1.5; }
 /* Aligne les champs du formulaire verticalement avec un espacement constant. */
 form { display: grid; gap: .6rem; margin-top: 1.5rem; }
 /* Sépare visuellement chaque libellé de son champ. */
@@ -21,16 +22,18 @@ input { width: 100%; padding: .8rem; border: 1px solid #c4c8bc; border-radius: .
 /* Rend le focus clavier visible sur les éléments interactifs. */
 input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #829d72; outline-offset: 2px; }
 /* Met en forme le bouton d’envoi du formulaire. */
-button { margin-top: 1rem; padding: .85rem; border: 0; border-radius: .5rem; background: #1d3312; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.card button { margin-top: 1rem; padding: .85rem; border: 0; border-radius: .5rem; background: var(--color-primary); color: white; font: inherit; font-weight: 700; cursor: pointer; }
 /* Modifie la couleur du bouton au survol. */
-button:hover { background: #456734; }
+.card button:hover { background: var(--color-secondary); }
 /* Rend le lien de navigation facile à repérer. */
-a { color: #36582a; font-weight: 700; }
+.card a { color: #36582a; font-weight: 700; }
+.back-link { display: inline-block; padding: .5rem .75rem; border: 1px solid #c4c8bc; border-radius: .5rem; font-size: .9rem; text-decoration: none; }
+.back-link:hover { background: #f0f5e8; }
 /* Ajuste l’espacement du texte au bas de la carte. */
 .foot { margin-bottom: 0; font-size: .9rem; }
 /* Présente les messages d’information dans un encadré discret. */
 .message { padding: .75rem; background: #e8f4df; border-radius: .5rem; }
 /* Distingue clairement les messages d’erreur. */
-.error { color: #a31414; }
+.card .error { color: #a31414; }
 /* Réduit les marges internes de la carte sur les petits écrans. */
 @media (max-width: 480px) { .card { padding: 1.5rem; } }

@@ -1,5 +1,7 @@
 package projet.saik.controller;
 
+import java.security.Principal;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -7,8 +9,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 // Associe les URL des pages principales aux vues Thymeleaf correspondantes.
 public class PageController {
 
-	@GetMapping({ "/", "/dashboard" })
-	// Affiche le tableau de bord sur la racine ou sur /dashboard.
+	@GetMapping("/")
+	public String index(Principal principal) {
+		return principal == null ? "accueil" : "dashboard";
+	}
+
+	@GetMapping("/accueil")
+	public String accueil() {
+		return "accueil";
+	}
+
+	@GetMapping("/dashboard")
+	// Affiche le tableau de bord pour les utilisateurs connectés.
 	public String dashboard() {
 		return "dashboard";
 	}

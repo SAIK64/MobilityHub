@@ -57,8 +57,9 @@ public class AuthApiController {
     @ResponseStatus(HttpStatus.CREATED)
     // Crée un compte et renvoie ses informations publiques sans renvoyer son mot de passe.
     public RegisteredUser register(@Valid @RequestBody AuthRequest request) {
-        var user = accounts.register(request.getEmail(), request.getPassword());
-        return new RegisteredUser(user.getId(), user.getEmail(), "USER");
+        var user = accounts.register(request.getEmail(), request.getPassword(),
+                request.getFirstName(), request.getLastName());
+        return new RegisteredUser(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), "USER");
     }
 
     @PostMapping("/login")
@@ -88,7 +89,7 @@ public class AuthApiController {
     // Champs obligatoires reçus lors d’une demande de connexion.
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
     // Données non sensibles renvoyées après la création d’un compte.
-    public record RegisteredUser(Long id, String email, String role) {}
+    public record RegisteredUser(Long id, String firstName, String lastName, String email, String role) {}
     // Format JSON du jeton renvoyé après une connexion réussie.
     public record TokenResponse(String token, String type, long expiresInSeconds) {}
 }
