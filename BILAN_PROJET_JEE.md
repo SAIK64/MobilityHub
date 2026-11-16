@@ -1,8 +1,11 @@
 # Bilan du projet JEE — SAIK Travel
 
-**État constaté le 16 novembre 2026**, sur la branche locale `template`, avec
-ses modifications non commitées. Ce bilan distingue le code présent des
-fonctionnalités vérifiées en conditions réelles.
+**État constaté le 16 novembre 2026**, à partir de la branche locale `template`
+et des autres références Git disponibles localement. Le répertoire de travail
+était propre lors de la comparaison ; la gestion multi-pays et le découpage
+JavaScript sont présents dans le commit `1cc22e2` de `template`. Les
+références `origin/*` sont les dernières connues localement : aucun
+rafraîchissement depuis GitHub n'a été effectué pour ce bilan.
 
 > **Correction du bilan précédent :** le CRUD REST n'est pas complet, le fichier
 > de base H2 n'est pas versionné sur cette branche et le projet ne peut donc pas
@@ -22,6 +25,39 @@ fonctionnalités vérifiées en conditions réelles.
 | Recherche et interface graphique | Partiel | Recherche et filtres présents pour les billets et dépenses ; présentation et parcours à tester. |
 | MVC et données transmises aux vues | Partiel | Contrôleurs et services présents ; les pages récupèrent surtout leurs données par JavaScript et API, pas directement par un modèle Thymeleaf. |
 | Soutenance et contributions | À préparer | Répartition de la parole, démonstration et contributions individuelles à confirmer. |
+
+## Comparaison des branches
+
+Une fonctionnalité présente dans une branche n'est pas nécessairement
+disponible dans la branche qui sera livrée. Les constats ci-dessous portent
+sur les commits des branches, sans les fusionner ni les exécuter.
+
+| Branche ou référence | État observé | Intégration dans `template` |
+|---|---|---|
+| `main` / `origin/main` | Socle initial Spring Boot et documentation ; ne contient pas les fonctionnalités de voyage actuelles. | Le commit de `main` est un ancêtre de `template`. |
+| `dev` | Branche de développement avec entités, contrôleurs et tests ; sa copie locale est en retard de quatre commits sur `origin/dev`. | `dev` et `origin/dev` sont des ancêtres de `template`. |
+| `origin/dev` | État de développement antérieur aux deux commits spécifiques les plus récents de `template`. | Son historique est inclus dans `template`. |
+| `template` / `origin/template` | Version examinée en détail dans ce bilan : interface, API métier, multi-pays et JavaScript découpé en modules. | Les deux références pointent localement sur `1cc22e2`. |
+| `sauvegarde-template-avant-remplacement` / `origin/sauvegarde-template-avant-remplacement` | Sauvegarde d'un état antérieur de l'interface et du backend. | Le commit de sauvegarde est un ancêtre de `template`. |
+| `origin/api-rest` | Ajoute deux DTO pour l'inscription et la réponse utilisateur. | Son commit spécifique n'est pas dans l'historique de `template` ; il ne constitue pas à lui seul un CRUD REST complet. |
+| `origin/database` | Contient des commentaires supplémentaires et ajoute un champ `countryCount` à la réponse d'un voyage. | Trois commits ne sont pas dans l'historique de `template`. Le modèle et la base H2 existent déjà dans `template`, mais le champ `countryCount` spécifique n'y est pas exposé. |
+| `origin/security` | Contient une implémentation d'inscription et de connexion, avec JWT et contrôleurs associés. | Son commit spécifique n'est pas dans l'historique de `template`. Cette dernière possède néanmoins sa propre implémentation d'authentification ; il ne faut pas supposer que les deux implémentations sont identiques. |
+
+La comparaison avec `origin/api-rest` montre des DTO supplémentaires, pas
+d'opérations CRUD supplémentaires pour les voyages. La branche
+`origin/security` expose notamment les routes d'inscription et de connexion ;
+elle ne résout pas non plus le manque de CRUD complet sur une ressource métier.
+La branche `origin/database` fournit un nombre de pays, tandis que `template`
+renvoie déjà la liste des pays du voyage.
+
+Pour la base, **aucune des branches ou références examinées ne versionne de
+fichier H2 `.mv.db`**. La présence d'un fichier local ne suffit donc pas à
+satisfaire l'exigence « présente dans le repository ».
+
+Avant de choisir une branche de livraison, actualiser les références distantes
+avec l'équipe, vérifier les travaux éventuellement plus récents et comparer
+les différences utiles. Une fusion éventuelle devra être décidée et testée
+séparément : il peut y avoir des doublons ou des conflits entre implémentations.
 
 ## Architecture et données
 
@@ -53,11 +89,11 @@ Exemples de relations :
 - **1-N** : utilisateur–voyages, voyage–billets, budget–dépenses.
 - **N-N** : voyages–pays, utilisateurs–rôles, rôles–permissions.
 
-La gestion multi-pays ajoutée localement permet de saisir plusieurs pays à la
-création et de les ajouter ou retirer d'un voyage enregistré. Les routes et
-contrôles sont présents, mais il reste à vérifier le parcours complet dans un
-navigateur, notamment après rechargement. Ces modifications ne sont pas encore
-commitées.
+La gestion multi-pays présente dans `template` permet de saisir plusieurs pays
+à la création et de les ajouter ou retirer d'un voyage enregistré. Un parcours
+de création, d'ajout et de retrait a été essayé dans un navigateur avec une API
+simulée ; il reste à le vérifier avec la vraie application et la base H2,
+notamment après rechargement.
 
 Pour les relations 1-N, la création d'un billet ou d'une dépense le rattache à
 son voyage ou son budget ; la suppression supprime l'objet. Vérifier si
@@ -127,8 +163,9 @@ vues concernées pour transmettre des données directement par Spring MVC.
 
 ## Tests
 
-Lors de la dernière exécution de `./mvnw -q test`, **12 tests sur 13 ont
-réussi**. L'échec est
+Lors d'une exécution précédente de `./mvnw -q test` sur l'état local,
+**12 tests sur 13 ont réussi**. Ce résultat n'a pas été revérifié pour chaque
+branche. L'échec observé était
 `AuthenticationTests.homeIsPublicAndLinksToAuthentication` : le test attend
 une chaîne HTML exacte, alors que le lien de retour est présent avec des
 espaces et retours à la ligne supplémentaires dans le rendu.
@@ -144,9 +181,12 @@ espaces et retours à la ligne supplémentaires dans le rendu.
 ## Dépôt et soutenance
 
 L'historique de la branche courante montre des commits attribués à Ambre et à
-deux identités liées à Iris. Cela ne permet pas de déduire toute la
-contribution réelle de chaque membre ni la régularité des contributions sur la
-branche qui sera livrée. Vérifier l'historique et la branche de livraison,
+deux noms d'auteur contenant « Iris ». Les références `origin/api-rest` et
+`origin/security` contiennent également des commits attribués respectivement
+à `sylia` et `Killian`, absents de l'historique de la branche `template`
+examinée. Cela ne permet pas de déduire toute la contribution réelle de chaque
+membre ni la régularité des contributions sur la branche qui sera livrée.
+Vérifier l'historique et la branche de livraison,
 faire des commits réguliers attribués correctement et documenter les rôles
 réels. Ne pas réécrire l'historique partagé sans accord de l'équipe.
 
@@ -170,6 +210,8 @@ avec l'enseignant si elle semble contradictoire avec le rendu final.
 
 ## Plan d'action prioritaire
 
+- [ ] Actualiser les références distantes et choisir la branche de livraison
+      avec l'équipe ; comparer et intégrer les travaux utiles si nécessaire.
 - [ ] Compléter et tester un CRUD REST sur une même ressource.
 - [ ] Préparer et versionner une base H2 de démonstration non sensible.
 - [ ] Valider les associations et dissociations graphiques 1-N et N-N.
