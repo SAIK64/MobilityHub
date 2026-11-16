@@ -1,55 +1,120 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mon profil | SAIK Travel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&amp;display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/js/design-tokens.js"></script>
-  <link rel="stylesheet" href="/css/design.css">
-  <script defer src="/js/travel-app.js"></script>
-</head>
-<body class="bg-surface font-body-md text-on-surface antialiased">
-  <header th:replace="~{fragments/layout :: appHeader}"></header>
-  <aside th:replace="~{fragments/layout :: sidebar('profil')}"></aside>
-  <div class="pl-64">
-    <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
-      <div class="flex flex-col gap-space-lg">
-        <section class="rounded-xl bg-surface-container p-space-lg">
-          <p class="font-label-md text-label-md text-secondary font-bold uppercase">Mon espace voyage</p>
-          <h1 class="font-headline-lg text-headline-lg text-primary font-bold mt-space-sm" data-profile-name>Mon profil</h1>
-          <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs" data-profile-summary>Chargement du profil…</p>
-        </section>
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
-          <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
-            <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">Informations personnelles</h2>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">Modifiez vos informations puis enregistrez-les.</p>
-            <form class="space-y-space-md mt-space-lg" id="profile-form" onsubmit="event.preventDefault(); showSavedToast();">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
-                <div><label class="block font-semibold mb-1" for="firstName">Prénom</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="firstName" name="firstName" type="text" required></div>
-                <div><label class="block font-semibold mb-1" for="lastName">Nom</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="lastName" name="lastName" type="text" required></div>
-                <div><label class="block font-semibold mb-1" for="birthDate">Date de naissance</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="birthDate" name="birthDate" type="text" placeholder="AAAA-MM-JJ" aria-describedby="birthDate-help"><small id="birthDate-help" data-profile-age>Âge non renseigné.</small></div>
-                <div><label class="block font-semibold mb-1" for="nationality">Nationalité</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="nationality" name="nationality" type="text"></div>
-                <div><label class="block font-semibold mb-1" for="email">Adresse e-mail</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="email" name="email" type="email" required></div>
-                <div><label class="block font-semibold mb-1" for="phone">Téléphone</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="phone" name="phone" type="tel"></div>
-                <div><label class="block font-semibold mb-1" for="passport">Numéro de passeport</label><input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="passport" name="passport" type="text"></div>
-              </div>
-              <div class="flex flex-wrap items-center gap-space-md">
-                <button class="bg-primary text-on-primary font-semibold px-space-lg py-2 rounded-lg hover:bg-primary-container" type="submit">Enregistrer les modifications</button>
-                <span class="font-label-md text-secondary opacity-0" id="save-status" role="status">Modifications enregistrées.</span>
-              </div>
-            </form>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      Mon profil | SAIK Travel
+    </title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="/js/design-tokens.js">
+    </script>
+    <link rel="stylesheet" href="/css/design.css">
+    <script type="module" src="/js/travel-app.js">
+    </script>
+  </head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <header th:replace="~{fragments/layout :: appHeader}">
+    </header>
+    <aside th:replace="~{fragments/layout :: sidebar('profil')}">
+    </aside>
+    <div class="pl-64">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+        <div class="flex flex-col gap-space-lg">
+          <section class="rounded-xl bg-surface-container p-space-lg">
+            <p class="font-label-md text-label-md text-secondary font-bold uppercase">
+              Mon espace voyage
+            </p>
+            <h1 class="font-headline-lg text-headline-lg text-primary font-bold mt-space-sm" data-profile-name>
+              Mon profil
+            </h1>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs" data-profile-summary>
+              Chargement du profil…
+            </p>
           </section>
-          <section class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm self-start">
-            <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">Mes données</h2>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-sm">Téléchargez les informations de votre profil et vos voyages enregistrés.</p>
-            <button type="button" class="mt-space-md bg-surface-container text-primary font-semibold px-space-md py-2 rounded-lg" onclick="exportTravelData()">Exporter mes données</button>
-          </section>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+            <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+              <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                Informations personnelles
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+                Modifiez vos informations puis enregistrez-les.
+              </p>
+              <form class="space-y-space-md mt-space-lg" id="profile-form" onsubmit="event.preventDefault(); showSavedToast();">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                  <div>
+                    <label class="block font-semibold mb-1" for="firstName">
+                      Prénom
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="firstName" name="firstName" type="text" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="lastName">
+                      Nom
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="lastName" name="lastName" type="text" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="birthDate">
+                      Date de naissance
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="birthDate" name="birthDate" type="text" placeholder="AAAA-MM-JJ" aria-describedby="birthDate-help">
+                    <small id="birthDate-help" data-profile-age>
+                      Âge non renseigné.
+                    </small>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="nationality">
+                      Nationalité
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="nationality" name="nationality" type="text">
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="email">
+                      Adresse e-mail
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="email" name="email" type="email" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="phone">
+                      Téléphone
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="phone" name="phone" type="tel">
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="passport">
+                      Numéro de passeport
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="passport" name="passport" type="text">
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-space-md">
+                  <button class="bg-primary text-on-primary font-semibold px-space-lg py-2 rounded-lg hover:bg-primary-container" type="submit">
+                    Enregistrer les modifications
+                  </button>
+                  <span class="font-label-md text-secondary opacity-0" id="save-status" role="status">
+                    Modifications enregistrées.
+                  </span>
+                </div>
+              </form>
+            </section>
+            <section class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm self-start">
+              <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                Mes données
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-sm">
+                Téléchargez les informations de votre profil et vos voyages enregistrés.
+              </p>
+              <button type="button" class="mt-space-md bg-surface-container text-primary font-semibold px-space-md py-2 rounded-lg" onclick="exportTravelData()">
+                Exporter mes données
+              </button>
+            </section>
+          </div>
         </div>
-      </div>
-    </main>
-  </div>
-</body>
+      </main>
+    </div>
+  </body>
 </html>

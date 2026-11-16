@@ -22,6 +22,7 @@ import projet.saik.repository.TripRepository;
 import projet.saik.service.TravelDataService;
 import projet.saik.service.AccountService;
 import projet.saik.web.TravelDataDtos.BudgetRequest;
+import projet.saik.web.TravelDataDtos.CountryRequest;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
 import projet.saik.web.TravelDataDtos.TicketRequest;
@@ -81,6 +82,24 @@ class TravelDataServiceTests {
         assertEquals(2, budget.categoryBudgets().size());
         org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
                 () -> travelDataService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Tech", -1.0))));
+    }
+
+    @Test
+    void managesMultipleCountriesForATrip() {
+        var trip = travelDataService.createTrip(new TripRequest(
+                "Circuit européen", null, null,
+                java.util.List.of(new CountryRequest("France", "FR"), new CountryRequest("Espagne", "ES")),
+                LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
+
+        assertEquals(java.util.List.of("ES", "FR"),
+                trip.countries().stream().map(country -> country.iso()).toList());
+
+        var withItaly = travelDataService.addCountry(trip.id(), new CountryRequest("Italie", "IT"));
+        assertEquals(3, withItaly.countries().size());
+
+        var withoutSpain = travelDataService.removeCountry(trip.id(), "es");
+        assertEquals(java.util.List.of("FR", "IT"),
+                withoutSpain.countries().stream().map(country -> country.iso()).toList());
     }
 
     @Test

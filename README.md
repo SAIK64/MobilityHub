@@ -90,6 +90,11 @@ Leur navigation commune se trouve dans `templates/fragments/layout.html` ;
 les styles et paramètres partagés sont dans `static/css/design.css` et
 `static/js/design-tokens.js`.
 
+Le JavaScript des pages connectées utilise des modules ES : `travel-app.js`
+initialise l'application, `common.js` regroupe les fonctions partagées, et
+`trips.js`, `transports.js`, `budget.js` et `profile.js` gèrent leurs
+fonctionnalités respectives.
+
 L'interface connectée comprend cinq vues Thymeleaf : le tableau de bord (`/` ou `/dashboard`), les
 transports (`/transports`), le budget (`/budget`), le kit de sécurité
 (`/securite`) et le profil (`/profil`). Les voyages, titres, dépenses et

@@ -29,6 +29,8 @@ import projet.saik.repository.UserRepository;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
 import projet.saik.web.TravelDataDtos.BudgetRequest;
 import projet.saik.web.TravelDataDtos.BudgetResponse;
+import projet.saik.web.TravelDataDtos.CountryRequest;
+import projet.saik.web.TravelDataDtos.CountryResponse;
 import projet.saik.web.TravelDataDtos.ExpenseResponse;
 import projet.saik.web.TravelDataDtos.FlightDetailsRequest;
 import projet.saik.web.TravelDataDtos.FlightDetailsResponse;
@@ -93,15 +95,14 @@ public class TravelDataService {
 
         // Attache le nouveau voyage au compte authentifié.
         User user = requireCurrentUser();
-        // Uniformise le code pays afin de retrouver plus facilement le pays en base.
-        String iso = request.iso().toUpperCase();
-        // Réutilise le pays existant ou l’ajoute au catalogue s’il n’y est pas encore.
-        Country country = countryRepository.findByCodeIso(iso).orElseGet(() -> {
-            // Construit le pays avec un nom débarrassé des espaces superflus.
-            Country created = new Country(request.country().trim(), iso);
-            // Persiste le nouveau pays et le retourne au traitement courant.
-            return countryRepository.save(created);
-        });
+        List<CountryRequest> requestedCountries = request.countries() == null || request.countries().isEmpty()
+                ? (request.country() == null || request.iso() == null
+                        ? List.of()
+                        : List.of(new CountryRequest(request.country(), request.iso())))
+                : request.countries();
+        if (requestedCountries.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins un pays est requis.");
+        }
 
         // Prépare une nouvelle entité de voyage.
         Trip trip = new Trip();
@@ -113,8 +114,14 @@ public class TravelDataService {
         trip.setEndDate(request.end());
         // Lie le voyage à son propriétaire.
         trip.setUser(user);
-        // Associe au voyage le pays choisi.
-        trip.getCountries().add(country);
+        // Réutilise les pays connus et évite les doublons dans les destinations du voyage.
+        requestedCountries.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        country -> country.iso().trim().toUpperCase(),
+                        country -> country,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new))
+                .forEach((iso, requestedCountry) -> trip.getCountries().add(getOrCreateCountry(requestedCountry, iso)));
 
         // Chaque voyage possède un budget créé au même moment.
         Budget budget = new Budget();
@@ -125,6 +132,33 @@ public class TravelDataService {
 
         // Enregistre le voyage, puis renvoie sa représentation destinée à l’API.
         return toTripResponse(tripRepository.save(trip));
+    }
+
+    @Transactional
+    public TripResponse addCountry(Long tripId, CountryRequest request) {
+        Trip trip = requireOwnedTrip(tripId);
+        String iso = request.iso().trim().toUpperCase();
+        Country country = getOrCreateCountry(request, iso);
+        boolean alreadyAssociated = trip.getCountries().stream()
+                .anyMatch(existing -> existing.getCodeIso().equalsIgnoreCase(iso));
+        if (!alreadyAssociated) trip.getCountries().add(country);
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    @Transactional
+    public TripResponse removeCountry(Long tripId, String requestedIso) {
+        Trip trip = requireOwnedTrip(tripId);
+        String iso = requestedIso.trim().toUpperCase();
+        boolean removed = trip.getCountries().removeIf(country -> country.getCodeIso().equalsIgnoreCase(iso));
+        if (!removed) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ce pays n’est pas associé à ce voyage.");
+        }
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    private Country getOrCreateCountry(CountryRequest request, String iso) {
+        return countryRepository.findByCodeIso(iso).orElseGet(() -> countryRepository.save(
+                new Country(request.country().trim(), iso)));
     }
 
     // Consulte les titres après vérification de la propriété du voyage.
@@ -389,13 +423,17 @@ public class TravelDataService {
 
     // Convertit l’entité de voyage en réponse JSON sans exposer l’entité JPA directement.
     private TripResponse toTripResponse(Trip trip) {
-        // Utilise le premier pays associé, ou une valeur vide si aucun pays n’est disponible.
-        Country country = trip.getCountries().stream().findFirst().orElse(null);
+        List<CountryResponse> countries = trip.getCountries().stream()
+                .sorted(java.util.Comparator.comparing(Country::getName))
+                .map(country -> new CountryResponse(country.getName(), country.getCodeIso()))
+                .toList();
+        CountryResponse country = countries.isEmpty() ? null : countries.get(0);
         return new TripResponse(
                 trip.getId(),
                 trip.getName(),
-                country == null ? "" : country.getName(),
-                country == null ? "" : country.getCodeIso(),
+                country == null ? "" : country.country(),
+                country == null ? "" : country.iso(),
+                countries,
                 trip.getStartDate(),
                 trip.getEndDate());
     }

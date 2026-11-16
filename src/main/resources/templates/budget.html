@@ -1,172 +1,351 @@
 <!DOCTYPE html>
-
-<!-- Page du budget : affiche les dépenses, les filtres et le formulaire d’ajout. --><html lang="fr" xmlns:th="http://www.thymeleaf.org"><head><title>Budget et dépenses | SAIK Travel</title><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script src="/js/design-tokens.js"></script><link href="/css/design.css" rel="stylesheet"/><script defer="" src="/js/travel-app.js"></script></head><body class="bg-surface font-body-md text-on-surface antialiased"><header th:replace="~{fragments/layout :: appHeader}"></header><aside th:replace="~{fragments/layout :: sidebar('budget')}"></aside><div class="pl-64"><main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface"><div class="flex flex-col w-full pb-space-2xl gap-space-xl">
-<!-- Top Metric & Context Header -->
-<div class="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-space-md"><div class="flex flex-col gap-space-xs"><h1 class="font-headline-lg text-headline-lg text-primary font-bold">Budget &amp; dépenses</h1><p class="text-on-surface-variant" data-selected-trip="">Aucun voyage sélectionné.</p></div><div class="flex items-center gap-space-sm shrink-0"><button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-lg text-label-lg shadow-sm" id="btn-export-academic"><span class="material-symbols-outlined text-[18px]">download</span><span>Exporter en CSV / PDF</span></button><button class="flex items-center gap-space-xs px-space-lg py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-all font-label-lg text-label-lg shadow-md hover:shadow-lg" id="btn-open-modal"><span class="material-symbols-outlined text-[20px]">add_circle</span><span>Ajouter une dépense</span></button></div></div>
-<!-- Financial Synthetic KPI Cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md" id="budget-kpis">
-<div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm"><p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Budget défini</p><p class="mt-1 text-3xl font-bold text-primary" id="kpi-budget">0,00 €</p></div>
-<div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm"><p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Dépensé</p><p class="mt-1 text-3xl font-bold text-primary" id="kpi-spent">0,00 €</p></div>
-<div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm"><p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Restant</p><p class="mt-1 text-3xl font-bold text-primary" id="kpi-remaining">0,00 €</p></div>
-</div>
-<!-- Diagrammes : répartition des dépenses et budget par catégorie -->
-<div class="grid grid-cols-1 lg:grid-cols-5 gap-space-md">
-<section class="lg:col-span-2 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
-<h2 class="font-headline-sm text-headline-sm text-primary font-semibold">Répartition des dépenses</h2>
-<div class="mt-space-md flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-space-md">
-<div class="relative h-44 w-44 shrink-0" id="expense-donut"></div>
-<ul class="flex w-full flex-col gap-2 text-body-sm" id="expense-legend"></ul>
-</div>
-</section>
-<section class="lg:col-span-3 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
-<div class="flex items-center justify-between gap-space-md">
-<h2 class="font-headline-sm text-headline-sm text-primary font-semibold">Budget par catégorie</h2>
-<button class="flex items-center gap-space-xs rounded-lg bg-surface-container-high px-space-md py-2 font-label-lg text-label-lg text-on-surface hover:bg-surface-container-highest" id="btn-edit-budgets" type="button"><span class="material-symbols-outlined text-[18px]">tune</span>Définir les budgets</button>
-</div>
-<div class="mt-space-md flex flex-col gap-space-md" id="category-bars"></div>
-</section>
-</div>
-<!-- Modal : budget par catégorie -->
-<div class="fixed inset-0 z-50 hidden items-center justify-center bg-on-surface/40 p-space-md backdrop-blur-sm" id="budget-modal">
-<form class="flex w-full max-w-md flex-col gap-space-md rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-space-lg shadow-2xl" id="budget-form">
-<div><h3 class="font-headline-md text-headline-md text-primary font-bold">Budget par catégorie</h3><p class="font-body-sm text-body-sm text-on-surface-variant">Laissez vide pour ne pas fixer de limite.</p></div>
-<div class="flex flex-col gap-space-sm" id="budget-fields"></div>
-<div class="flex justify-end gap-space-sm border-t border-outline-variant/30 pt-space-md"><button class="rounded-lg px-space-md py-2 font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high" id="btn-cancel-budget" type="button">Annuler</button><button class="rounded-lg bg-primary px-space-lg py-2 font-label-lg text-label-lg text-on-primary hover:bg-primary-container" type="submit">Enregistrer</button></div>
-</form>
-</div>
-
-
-<!-- Smart Gauge & Pace Alert Banner -->
-
-<!-- Bento Section: Breakdown Visuals & Travel Cost Sync -->
-
-<!-- Main Management Section: Expense Table -->
-<div class="flex flex-col bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-<!-- Table Header & Interactive Controls -->
-<div class="p-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-<div>
-<h2 class="font-headline-md text-headline-md text-primary font-semibold">Registre des Dépenses Réelles</h2>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Dépenses enregistrées pour le voyage sélectionné.</p>
-</div>
-<!-- Filters Toolbar -->
-<div class="flex flex-wrap items-center gap-space-xs">
-<!-- Category Filter -->
-<div class="relative">
-<select class="appearance-none bg-surface-container-low pl-3 pr-8 py-2 rounded-lg font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer" id="filter-category">
-<option value="ALL">Toutes les catégories</option>
-<option value="Transport">Transports &amp; Billets</option>
-<option value="Logement">Logement &amp; Caution</option>
-<option value="Assurance">Assurance &amp; Frais</option>
-<option value="Vie courante">Vie courante &amp; Repas</option>
-<option value="Loisirs">Loisirs &amp; Culture</option>
-</select>
-<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">arrow_drop_down</span>
-</div>
-<!-- Sync Type Filter -->
-<div class="relative">
-<select class="appearance-none bg-surface-container-low pl-3 pr-8 py-2 rounded-lg font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer" id="filter-type">
-<option value="ALL">Tous les modes</option>
-<option value="AUTO">Auto-généré (Billets)</option>
-<option value="MANUAL">Saisie Manuelle</option>
-</select>
-<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">arrow_drop_down</span>
-</div>
-<!-- Search Input -->
-<div class="relative">
-<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
-<input class="pl-9 pr-3 py-2 bg-surface-container-low rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none w-44 md:w-56" id="filter-search" placeholder="Rechercher intitulé..." type="search"/>
-</div>
-</div>
-</div>
-<!-- Data Table -->
-<div class="w-full overflow-x-auto">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
-<th class="py-3 px-space-lg">Description de la dépense</th>
-<th class="py-3 px-space-md">Date</th>
-<th class="py-3 px-space-md">Catégorie</th>
-<th class="py-3 px-space-md">Provenance &amp; Statut</th>
-<th class="py-3 px-space-md text-right">Montant</th>
-<th class="py-3 px-space-lg text-center">Justificatif</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-outline-variant/20 font-body-md text-body-md" id="expense-tbody"></tbody>
-</table>
-</div>
-<!-- Table Footer with Summary Status -->
-
-</div>
-<!-- Modal: Ajouter une Dépense (Hidden by default) -->
-<div class="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm flex items-center justify-center p-space-md hidden" id="expense-modal">
-<div class="bg-surface-container-lowest rounded-xl max-w-xl w-full p-space-lg shadow-2xl flex flex-col gap-space-md border border-outline-variant/30">
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-space-xs">
-<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
-<span class="material-symbols-outlined text-[22px]">post_add</span>
-</div>
-<div>
-<h3 class="font-headline-md text-headline-md text-primary font-bold">Saisir une Dépense</h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">Ajout au voyage sélectionné</p>
-</div>
-</div>
-<button class="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-close-modal">
-<span class="material-symbols-outlined text-[22px]">close</span>
-</button>
-</div>
-<form class="flex flex-col gap-space-md" id="add-expense-form">
-<!-- Description -->
-<div class="flex flex-col gap-1">
-<label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Intitulé de la dépense (description) *</label>
-<input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" placeholder="Ex : transport local" required="" type="text"/>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
-<!-- Montant -->
-<div class="flex flex-col gap-1">
-<label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Montant (€) (amount) *</label>
-<input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" min="0" placeholder="Ex: 85.00" required="" step="0.01" type="number"/>
-</div>
-<!-- Date -->
-<div class="flex flex-col gap-1">
-<label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Date de règlement (expenseDate) *</label>
-<input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" required="" type="date"/>
-</div>
-</div>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
-<!-- Catégorie -->
-<div class="flex flex-col gap-1">
-<label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Catégorie budgétaire *</label>
-<select class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" required=""><option value="Transport">Transports (vols, TGV, métro)</option><option value="Hébergement">Hébergements (hôtels, guesthouses)</option><option value="Formalités">Formalités &amp; Démarches (visa)</option><option value="Activités">Activités &amp; Visites</option><option value="Restauration">Vie courante &amp; Restauration</option><option value="Tech">Télécoms &amp; Tech</option></select>
-</div>
-<!-- Justificatif Reçu -->
-<div class="flex flex-col gap-1">
-<label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Attachement du reçu</label>
-<div class="relative flex items-center justify-center p-2 rounded-lg bg-surface-container-low border border-dashed border-outline-variant hover:bg-surface-container cursor-pointer">
-<input class="absolute inset-0 opacity-0 cursor-pointer" type="file"/>
-<span class="material-symbols-outlined text-secondary text-[20px] mr-1">attach_file</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">PNG, JPG, PDF (max 5Mo)</span>
-</div>
-</div>
-</div>
-<!-- Checkbox AutoGenerated simulator -->
-<!-- Action Buttons -->
-<div class="flex items-center justify-end gap-space-sm pt-space-md border-t border-outline-variant/30">
-<button class="px-space-md py-2 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-cancel-modal" type="button">
-            Annuler
-          </button>
-<button class="px-space-lg py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-colors font-label-lg text-label-lg shadow-sm" type="submit">
-            Enregistrer la dépense
-          </button>
-</div>
-</form>
-</div>
-</div>
-<!-- Notification Toast for Academic Export -->
-
-</div>
-<!-- Interactive Client-side script for filters & modal interaction -->
-<script>
+<!-- Page du budget : affiche les dépenses, les filtres et le formulaire d’ajout. -->
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title>
+      Budget et dépenses | SAIK Travel
+    </title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="web_dashboard" name="shell-type"/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style>
+@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }
+    </style>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="/js/design-tokens.js">
+    </script>
+    <link href="/css/design.css" rel="stylesheet"/>
+    <script type="module" src="/js/travel-app.js">
+    </script>
+  </head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <header th:replace="~{fragments/layout :: appHeader}">
+    </header>
+    <aside th:replace="~{fragments/layout :: sidebar('budget')}">
+    </aside>
+    <div class="pl-64">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+        <div class="flex flex-col w-full pb-space-2xl gap-space-xl">
+          <!-- Top Metric & Context Header -->
+          <div class="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-space-md">
+            <div class="flex flex-col gap-space-xs">
+              <h1 class="font-headline-lg text-headline-lg text-primary font-bold">
+                Budget &amp; dépenses
+              </h1>
+              <p class="text-on-surface-variant" data-selected-trip="">
+                Aucun voyage sélectionné.
+              </p>
+            </div>
+            <div class="flex items-center gap-space-sm shrink-0">
+              <button class="flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-label-lg text-label-lg shadow-sm" id="btn-export-academic">
+                <span class="material-symbols-outlined text-[18px]">
+                  download
+                </span>
+                <span>
+                  Exporter en CSV / PDF
+                </span>
+              </button>
+              <button class="flex items-center gap-space-xs px-space-lg py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-all font-label-lg text-label-lg shadow-md hover:shadow-lg" id="btn-open-modal">
+                <span class="material-symbols-outlined text-[20px]">
+                  add_circle
+                </span>
+                <span>
+                  Ajouter une dépense
+                </span>
+              </button>
+            </div>
+          </div>
+          <!-- Financial Synthetic KPI Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md" id="budget-kpis">
+            <div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+              <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
+                Budget défini
+              </p>
+              <p class="mt-1 text-3xl font-bold text-primary" id="kpi-budget">
+                0,00 €
+              </p>
+            </div>
+            <div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+              <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
+                Dépensé
+              </p>
+              <p class="mt-1 text-3xl font-bold text-primary" id="kpi-spent">
+                0,00 €
+              </p>
+            </div>
+            <div class="rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+              <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
+                Restant
+              </p>
+              <p class="mt-1 text-3xl font-bold text-primary" id="kpi-remaining">
+                0,00 €
+              </p>
+            </div>
+          </div>
+          <!-- Diagrammes : répartition des dépenses et budget par catégorie -->
+          <div class="grid grid-cols-1 lg:grid-cols-5 gap-space-md">
+            <section class="lg:col-span-2 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+              <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                Répartition des dépenses
+              </h2>
+              <div class="mt-space-md flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-space-md">
+                <div class="relative h-44 w-44 shrink-0" id="expense-donut">
+                </div>
+                <ul class="flex w-full flex-col gap-2 text-body-sm" id="expense-legend">
+                </ul>
+              </div>
+            </section>
+            <section class="lg:col-span-3 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+              <div class="flex items-center justify-between gap-space-md">
+                <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                  Budget par catégorie
+                </h2>
+                <button class="flex items-center gap-space-xs rounded-lg bg-surface-container-high px-space-md py-2 font-label-lg text-label-lg text-on-surface hover:bg-surface-container-highest" id="btn-edit-budgets" type="button">
+                  <span class="material-symbols-outlined text-[18px]">
+                    tune
+                  </span>
+                  Définir les budgets
+                </button>
+              </div>
+              <div class="mt-space-md flex flex-col gap-space-md" id="category-bars">
+              </div>
+            </section>
+          </div>
+          <!-- Modal : budget par catégorie -->
+          <div class="fixed inset-0 z-50 hidden items-center justify-center bg-on-surface/40 p-space-md backdrop-blur-sm" id="budget-modal">
+            <form class="flex w-full max-w-md flex-col gap-space-md rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-space-lg shadow-2xl" id="budget-form">
+              <div>
+                <h3 class="font-headline-md text-headline-md text-primary font-bold">
+                  Budget par catégorie
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Laissez vide pour ne pas fixer de limite.
+                </p>
+              </div>
+              <div class="flex flex-col gap-space-sm" id="budget-fields">
+              </div>
+              <div class="flex justify-end gap-space-sm border-t border-outline-variant/30 pt-space-md">
+                <button class="rounded-lg px-space-md py-2 font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high" id="btn-cancel-budget" type="button">
+                  Annuler
+                </button>
+                <button class="rounded-lg bg-primary px-space-lg py-2 font-label-lg text-label-lg text-on-primary hover:bg-primary-container" type="submit">
+                  Enregistrer
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- Smart Gauge & Pace Alert Banner -->
+          <!-- Bento Section: Breakdown Visuals & Travel Cost Sync -->
+          <!-- Main Management Section: Expense Table -->
+          <div class="flex flex-col bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+            <!-- Table Header & Interactive Controls -->
+            <div class="p-space-lg flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+              <div>
+                <h2 class="font-headline-md text-headline-md text-primary font-semibold">
+                  Registre des Dépenses Réelles
+                </h2>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Dépenses enregistrées pour le voyage sélectionné.
+                </p>
+              </div>
+              <!-- Filters Toolbar -->
+              <div class="flex flex-wrap items-center gap-space-xs">
+                <!-- Category Filter -->
+                <div class="relative">
+                  <select class="appearance-none bg-surface-container-low pl-3 pr-8 py-2 rounded-lg font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer" id="filter-category">
+                    <option value="ALL">
+                      Toutes les catégories
+                    </option>
+                    <option value="Transport">
+                      Transports &amp; Billets
+                    </option>
+                    <option value="Logement">
+                      Logement &amp; Caution
+                    </option>
+                    <option value="Assurance">
+                      Assurance &amp; Frais
+                    </option>
+                    <option value="Vie courante">
+                      Vie courante &amp; Repas
+                    </option>
+                    <option value="Loisirs">
+                      Loisirs &amp; Culture
+                    </option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">
+                    arrow_drop_down
+                  </span>
+                </div>
+                <!-- Sync Type Filter -->
+                <div class="relative">
+                  <select class="appearance-none bg-surface-container-low pl-3 pr-8 py-2 rounded-lg font-label-lg text-label-lg text-on-surface focus:outline-none cursor-pointer" id="filter-type">
+                    <option value="ALL">
+                      Tous les modes
+                    </option>
+                    <option value="AUTO">
+                      Auto-généré (Billets)
+                    </option>
+                    <option value="MANUAL">
+                      Saisie Manuelle
+                    </option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">
+                    arrow_drop_down
+                  </span>
+                </div>
+                <!-- Search Input -->
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">
+                    search
+                  </span>
+                  <input class="pl-9 pr-3 py-2 bg-surface-container-low rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none w-44 md:w-56" id="filter-search" placeholder="Rechercher intitulé..." type="search"/>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="w-full overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+                  <th class="py-3 px-space-lg">
+                    Description de la dépense
+                  </th>
+                  <th class="py-3 px-space-md">
+                    Date
+                  </th>
+                  <th class="py-3 px-space-md">
+                    Catégorie
+                  </th>
+                  <th class="py-3 px-space-md">
+                    Provenance &amp; Statut
+                  </th>
+                  <th class="py-3 px-space-md text-right">
+                    Montant
+                  </th>
+                  <th class="py-3 px-space-lg text-center">
+                    Justificatif
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-outline-variant/20 font-body-md text-body-md" id="expense-tbody">
+              </tbody>
+            </table>
+          </div>
+          <!-- Table Footer with Summary Status -->
+        </div>
+        <!-- Modal: Ajouter une Dépense (Hidden by default) -->
+        <div class="fixed inset-0 z-50 bg-on-surface/40 backdrop-blur-sm flex items-center justify-center p-space-md hidden" id="expense-modal">
+          <div class="bg-surface-container-lowest rounded-xl max-w-xl w-full p-space-lg shadow-2xl flex flex-col gap-space-md border border-outline-variant/30">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-space-xs">
+                <div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+                  <span class="material-symbols-outlined text-[22px]">
+                    post_add
+                  </span>
+                </div>
+                <div>
+                  <h3 class="font-headline-md text-headline-md text-primary font-bold">
+                    Saisir une Dépense
+                  </h3>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    Ajout au voyage sélectionné
+                  </p>
+                </div>
+              </div>
+              <button class="p-1 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-close-modal">
+                <span class="material-symbols-outlined text-[22px]">
+                  close
+                </span>
+              </button>
+            </div>
+            <form class="flex flex-col gap-space-md" id="add-expense-form">
+              <!-- Description -->
+              <div class="flex flex-col gap-1">
+                <label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+                  Intitulé de la dépense (description) *
+                </label>
+                <input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" placeholder="Ex : transport local" required="" type="text"/>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                <!-- Montant -->
+                <div class="flex flex-col gap-1">
+                  <label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+                    Montant (€) (amount) *
+                  </label>
+                  <input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" min="0" placeholder="Ex: 85.00" required="" step="0.01" type="number"/>
+                </div>
+                <!-- Date -->
+                <div class="flex flex-col gap-1">
+                  <label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+                    Date de règlement (expenseDate) *
+                  </label>
+                  <input class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:bg-surface-container-lowest focus:ring-1 focus:ring-primary" required="" type="date"/>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                <!-- Catégorie -->
+                <div class="flex flex-col gap-1">
+                  <label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+                    Catégorie budgétaire *
+                  </label>
+                  <select class="w-full px-space-md py-2 bg-surface-container-low rounded-lg font-body-md text-body-md text-on-surface focus:outline-none" required="">
+                    <option value="Transport">
+                      Transports (vols, TGV, métro)
+                    </option>
+                    <option value="Hébergement">
+                      Hébergements (hôtels, guesthouses)
+                    </option>
+                    <option value="Formalités">
+                      Formalités &amp; Démarches (visa)
+                    </option>
+                    <option value="Activités">
+                      Activités &amp; Visites
+                    </option>
+                    <option value="Restauration">
+                      Vie courante &amp; Restauration
+                    </option>
+                    <option value="Tech">
+                      Télécoms &amp; Tech
+                    </option>
+                  </select>
+                </div>
+                <!-- Justificatif Reçu -->
+                <div class="flex flex-col gap-1">
+                  <label class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">
+                    Attachement du reçu
+                  </label>
+                  <div class="relative flex items-center justify-center p-2 rounded-lg bg-surface-container-low border border-dashed border-outline-variant hover:bg-surface-container cursor-pointer">
+                    <input class="absolute inset-0 opacity-0 cursor-pointer" type="file"/>
+                    <span class="material-symbols-outlined text-secondary text-[20px] mr-1">
+                      attach_file
+                    </span>
+                    <span class="font-body-sm text-body-sm text-on-surface-variant">
+                      PNG, JPG, PDF (max 5Mo)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <!-- Checkbox AutoGenerated simulator -->
+              <!-- Action Buttons -->
+              <div class="flex items-center justify-end gap-space-sm pt-space-md border-t border-outline-variant/30">
+                <button class="px-space-md py-2 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-cancel-modal" type="button">
+                  Annuler
+                </button>
+                <button class="px-space-lg py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container transition-colors font-label-lg text-label-lg shadow-sm" type="submit">
+                  Enregistrer la dépense
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <!-- Notification Toast for Academic Export -->
+      </div>
+      <!-- Interactive Client-side script for filters & modal interaction -->
+      <script>
   (function initBudgetView() {
     const modal = document.getElementById('expense-modal');
     const openBtn = document.getElementById('btn-open-modal');
@@ -176,27 +355,22 @@
     const exportBtn = document.getElementById('btn-export-academic');
     const toast = document.getElementById('toast-export');
     const toastClose = document.getElementById('toast-close');
-
     // Filtering logic
     const filterCat = document.getElementById('filter-category');
     const filterType = document.getElementById('filter-type');
     const filterSearch = document.getElementById('filter-search');
     const rows = document.querySelectorAll('.expense-row');
-
     function applyFilters() {
       const catVal = filterCat.value;
       const typeVal = filterType.value;
       const searchVal = filterSearch.value.toLowerCase().trim();
-
       rows.forEach(row => {
         const rowCat = row.getAttribute('data-category');
         const rowSync = row.getAttribute('data-sync');
         const rowText = row.innerText.toLowerCase();
-
         const matchCat = (catVal === 'ALL' || rowCat === catVal);
         const matchType = (typeVal === 'ALL' || rowSync === typeVal);
         const matchSearch = (searchVal === '' || rowText.includes(searchVal));
-
         if (matchCat && matchType && matchSearch) {
           row.style.display = '';
         } else {
@@ -204,11 +378,9 @@
         }
       });
     }
-
     if (filterCat) filterCat.addEventListener('change', applyFilters);
     if (filterType) filterType.addEventListener('change', applyFilters);
     if (filterSearch) filterSearch.addEventListener('input', applyFilters);
-
     // Modal controls
     if (openBtn && modal) {
       openBtn.addEventListener('click', () => modal.classList.remove('hidden'));
@@ -216,14 +388,12 @@
     const closeModal = () => modal && modal.classList.add('hidden');
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
-
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         window.saveExpense(form);
       });
     }
-
     // Export Toast
     if (exportBtn && toast) {
       exportBtn.addEventListener('click', () => {
@@ -233,12 +403,14 @@
         }, 4000);
       });
     }
-
     if (toastClose && toast) {
       toastClose.addEventListener('click', () => {
         toast.classList.add('translate-y-24', 'opacity-0');
       });
     }
   })();
-</script></main></div>
-</body></html>
+      </script>
+    </main>
+  </div>
+</body>
+</html>
