@@ -1,34 +1,29 @@
-# SAIK — Gestion de voyages et de mobilités étudiantes
+# SAIK — Gestion de voyages étudiants
 
 SAIK est un projet réalisé dans le cadre de la formation **ING2**, pour le
-module **JEE**. L'objectif est de concevoir une application web de gestion de
-voyages et de séjours étudiants, avec un parcours dédié à la mobilité
-académique.
-
-> Le dépôt contient actuellement le socle Spring Boot de l'application. Les
-> fonctionnalités métier décrites ci-dessous constituent le périmètre prévu
-> dans les spécifications ; elles ne sont pas toutes implémentées à ce stade.
+module **JEE**. Cette application web permet de préparer et de suivre des
+voyages, leurs transports et leurs dépenses.
 
 ## Présentation
 
-La plateforme vise à gérer les étudiants, leurs dossiers de mobilité, les
-destinations partenaires, les logements et les documents administratifs. La
-mobilité académique est conçue comme une option activable sur un dossier
-étudiant. Lorsqu'elle est activée, le parcours doit notamment prendre en
-compte les justificatifs requis, le choix d'une destination et le suivi de
-l'éligibilité.
+L'application propose :
 
-Les principales règles métier envisagées sont :
+- la création d'un compte, la connexion et la modification du profil ;
+- la création et la sélection de voyages, avec un ou plusieurs pays ;
+- l'ajout et le retrait de pays sur un voyage existant ;
+- la gestion des titres de transport et des dépenses, avec recherche et
+  filtres ;
+- le suivi des budgets par catégorie et la création d'une dépense associée
+  à un billet lorsque nécessaire ;
+- une page de conseils de sécurité et des liens vers des sources officielles.
 
-- suivre l'état d'avancement des dossiers (incomplet, en cours, validé ou
-  refusé) ;
-- vérifier les documents requis pour une mobilité ;
-- associer les étudiants à des destinations et gérer les capacités d'accueil ;
-- référencer les logements disponibles liés aux destinations ;
-- proposer une interface web et des endpoints REST.
+Les données sont accessibles depuis les pages web et une API REST. Les
+réservations externes, le téléversement des pièces jointes et l'envoi d'alertes
+ne sont pas connectés. L'API ne propose pas encore un CRUD complet pour chaque
+ressource, notamment la modification et la suppression d'un voyage.
 
-Pour le détail du périmètre, du modèle de données et des règles fonctionnelles,
-consulter le [document de spécifications et d'architecture](./sp_cifications_et_architecture_du_projet.md).
+Pour une analyse du projet et des points restant à vérifier, consulter le
+[bilan du projet](./BILAN_PROJET_JEE.md).
 
 ## Équipe et cadre du projet
 
@@ -61,6 +56,16 @@ Depuis la racine du dépôt :
 ```
 
 Sous Windows, utiliser `mvnw.cmd` à la place de `./mvnw`.
+
+Ouvrir ensuite [http://localhost:8080](http://localhost:8080), créer un compte
+sur la page d'inscription et se connecter. Pour utiliser un autre port si
+8080 est occupé :
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+```
+
+L'application sera alors accessible sur `http://localhost:8081`.
 
 ## Exécuter les tests
 
@@ -101,8 +106,20 @@ transports (`/transports`), le budget (`/budget`), le kit de sécurité
 informations de profil modifiables sont envoyés aux routes `/api/...` et
 persistés par Spring Data JPA dans la base H2 locale `./data/saikdb`.
 Hibernate crée ou met à jour les tables à partir des entités Java.
-Les principales routes sont `/api/trips`, `/api/trips/{id}/tickets`,
-`/api/trips/{id}/expenses` et `/api/profile`.
+Le fichier de base H2 est local et ignoré par Git.
+
+## API métier
+
+| Fonction | Routes |
+|---|---|
+| Lister et créer des voyages | `GET`, `POST /api/trips` |
+| Ajouter ou retirer un pays | `POST /api/trips/{tripId}/countries`, `DELETE /api/trips/{tripId}/countries/{iso}` |
+| Lister et ajouter des billets | `GET`, `POST /api/trips/{tripId}/tickets` |
+| Supprimer un billet | `DELETE /api/tickets/{ticketId}` |
+| Consulter et modifier le budget | `GET`, `PUT /api/trips/{tripId}/budget` |
+| Lister et ajouter des dépenses | `GET`, `POST /api/trips/{tripId}/expenses` |
+| Supprimer une dépense | `DELETE /api/expenses/{expenseId}` |
+| Consulter et modifier le profil | `GET`, `PUT /api/profile` |
 
 ## Authentification
 
@@ -115,9 +132,9 @@ voyages, billets, dépenses et profil. La déconnexion est disponible dans
 l'en-tête. Les requêtes modifiant les données et la déconnexion sont protégées
 contre les attaques CSRF.
 
-Les routes de la branche `security` sont également disponibles :
+L'API propose également des routes d'authentification :
 
-- `POST /api/v1/auth/register` accepte `{"email":"...","password":"..."}`.
+- `POST /api/v1/auth/register` accepte `{"firstName":"...","lastName":"...","email":"...","password":"..."}`.
 - `POST /api/v1/auth/login` accepte les mêmes champs et retourne un jeton
   `Bearer` (`token`, `type`, `expiresInSeconds`).
 - Pour les autres routes `/api/...`, transmettre ce jeton dans l'en-tête

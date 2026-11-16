@@ -48,8 +48,8 @@ class AuthenticationTests {
         }
         for (String path : new String[] { "/login", "/register" }) {
             mvc.perform(get(path)).andExpect(status().isOk())
-                    .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                            "href=\"/accueil\">← Retour à l’accueil</a>")));
+                    .andExpect(content().string(org.hamcrest.Matchers.matchesPattern(
+                            "(?s).*<a\\b[^>]*\\bhref=\"/accueil\"[^>]*>\\s*← Retour à l’accueil\\s*</a>.*")));
         }
         mvc.perform(get("/css/accueil.css")).andExpect(status().isOk());
     }

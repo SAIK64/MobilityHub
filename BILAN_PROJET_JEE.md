@@ -170,9 +170,12 @@ branche. L'échec observé était
 une chaîne HTML exacte, alors que le lien de retour est présent avec des
 espaces et retours à la ligne supplémentaires dans le rendu.
 
+L'assertion a depuis été corrigée pour accepter ces espaces tout en vérifiant
+le lien et son texte. Une nouvelle exécution de `./mvnw -q test` sur l'état
+local a réussi : **13 tests sur 13**, sans échec ni erreur.
+
 À faire :
 
-- Corriger l'assertion ou harmoniser le rendu, puis relancer toute la suite.
 - Ajouter des tests HTTP pour la validation, les droits et les opérations
   multi-pays, ainsi que pour le CRUD retenu.
 - Tester manuellement la création, l'affichage, l'ajout et le retrait des pays
@@ -216,7 +219,7 @@ avec l'enseignant si elle semble contradictoire avec le rendu final.
 - [ ] Préparer et versionner une base H2 de démonstration non sensible.
 - [ ] Valider les associations et dissociations graphiques 1-N et N-N.
 - [ ] Vérifier l'interprétation du critère MVC / données des vues.
-- [ ] Corriger le test échoué et relancer tous les tests.
+- [x] Corriger le test échoué et relancer tous les tests.
 - [ ] Tester le parcours complet et l'API depuis un client HTTP.
 - [ ] Mettre à jour le README, dont la présentation initiale décrit encore
       des fonctionnalités de mobilité prévues qui ne correspondent pas
