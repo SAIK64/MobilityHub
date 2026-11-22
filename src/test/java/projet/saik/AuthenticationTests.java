@@ -88,7 +88,7 @@ class AuthenticationTests {
                 .andExpect(status().isOk());
         mvc.perform(put("/api/profile").session(session).header(header, token)
                 .contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Web","lastName":"User","email":"web-changed@example.test"}
+               {"firstName":"Web","lastName":"User","email":"web-changed@example.test","currentPassword":"password-web"}
                 """)).andExpect(status().isOk());
         mvc.perform(get("/api/profile").session(session))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("web-changed@example.test"));
@@ -146,7 +146,7 @@ class AuthenticationTests {
         // Vérifie qu’un changement d’adresse ne rend pas le jeton actif inutilisable.
         mvc.perform(put("/api/profile").header("Authorization", "Bearer " + first)
                 .contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Test","lastName":"User","email":"changed@example.test"}
+                {"firstName":"Test","lastName":"User","email":"changed@example.test","currentPassword":"password-api"}
                 """)).andExpect(status().isOk());
         mvc.perform(get("/api/profile").header("Authorization", "Bearer " + first))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("changed@example.test"));

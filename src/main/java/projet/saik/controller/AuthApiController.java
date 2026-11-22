@@ -69,12 +69,15 @@ public class AuthApiController {
             var auth = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(request.email(), request.password()));
             Instant now = Instant.now();
-            // Convertit les autorisations en noms de rôles à inclure dans les claims du jeton.
-            List<String> roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                    .map(role -> role.replaceFirst("^ROLE_", "")).toList();
+            // Sépare les rôles (ROLE_…) des permissions (USER_DELETE…) pour les claims du jeton.
+            List<String> authorities = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+            List<String> roles = authorities.stream().filter(a -> a.startsWith("ROLE_"))
+                    .map(a -> a.substring("ROLE_".length())).toList();
+            List<String> permissions = authorities.stream().filter(a -> !a.startsWith("ROLE_")).toList();
             // Définit l’émetteur, l’utilisateur, les dates de validité et les rôles du jeton.
             var claims = JwtClaimsSet.builder().issuer("saik").subject(auth.getName())
-                    .issuedAt(now).expiresAt(now.plusSeconds(expirationSeconds)).claim("roles", roles).build();
+                    .issuedAt(now).expiresAt(now.plusSeconds(expirationSeconds))
+                    .claim("roles", roles).claim("permissions", permissions).build();
             // Choisit l’algorithme HMAC configuré pour signer le JWT.
             var header = JwsHeader.with(MacAlgorithm.HS256).build();
             String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

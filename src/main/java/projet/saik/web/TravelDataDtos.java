@@ -145,7 +145,9 @@ public final class TravelDataDtos {
             // Téléphone facultatif.
             String phone,
             // Numéro de passeport facultatif.
-            String passport) {
+            String passport,
+            // Mot de passe actuel, exigé uniquement pour changer l'adresse e-mail.
+            String currentPassword) {
     }
 
     // Renvoie les informations du profil sans exposer de données sensibles inutiles.

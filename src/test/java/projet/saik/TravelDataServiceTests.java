@@ -106,7 +106,7 @@ class TravelDataServiceTests {
         // Remplace les informations du profil par une nouvelle adresse.
         var updated = travelDataService.updateProfile(new ProfileRequest(
                 "Étudiant", "Démo", "", "Française",
-                "nouveau@example.test", "", ""));
+                "nouveau@example.test", "", "", "motdepasse-test"));
 
         // Vérifie la réponse de mise à jour et les lectures suivantes du profil.
         assertEquals("nouveau@example.test", updated.email());

@@ -857,6 +857,9 @@
       const field = document.getElementById(id);
       if (field) profile[id] = field.value.trim();
     });
+    // Le mot de passe actuel n’est jamais retiré ni mémorisé : il sert seulement à confirmer un changement d’e-mail.
+    const passwordField = document.getElementById('currentPassword');
+    if (passwordField && passwordField.value) profile.currentPassword = passwordField.value;
     try {
       // Envoie les nouvelles coordonnées au serveur pour les enregistrer.
       const savedProfile = await apiRequest('/api/profile', {
@@ -872,6 +875,9 @@
     } catch (error) {
       // Présente l’erreur renvoyée si la sauvegarde échoue.
       announceRequestError('Impossible d’enregistrer le profil', error);
+    } finally {
+      // Efface le mot de passe saisi, que la sauvegarde ait réussi ou non.
+      if (passwordField) passwordField.value = '';
     }
   };
 

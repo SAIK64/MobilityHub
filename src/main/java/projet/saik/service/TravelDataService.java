@@ -3,8 +3,10 @@ package projet.saik.service;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ import projet.saik.repository.ExpenseRepository;
 import projet.saik.repository.TransportTicketRepository;
 import projet.saik.repository.TripRepository;
 import projet.saik.repository.UserRepository;
+import projet.saik.security.LoginAttemptService;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
 import projet.saik.web.TravelDataDtos.ExpenseResponse;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
@@ -47,9 +50,14 @@ public class TravelDataService {
     private final ExpenseRepository expenseRepository;
     // Accès aux titres de transport enregistrés.
     private final TransportTicketRepository ticketRepository;
+    // Vérifie le mot de passe actuel avant les changements sensibles.
+    private final PasswordEncoder passwordEncoder;
+    // Limite les essais de mot de passe, comme à la connexion.
+    private final LoginAttemptService loginAttempts;
 
     // Spring fournit les dépôts nécessaires à chaque règle métier.
-    public TravelDataService( TripRepository tripRepository, CountryRepository countryRepository, UserRepository userRepository, BudgetRepository budgetRepository, ExpenseRepository expenseRepository, TransportTicketRepository ticketRepository) {
+    public TravelDataService( TripRepository tripRepository, CountryRepository countryRepository, UserRepository userRepository, BudgetRepository budgetRepository, ExpenseRepository expenseRepository, TransportTicketRepository ticketRepository,
+            PasswordEncoder passwordEncoder, LoginAttemptService loginAttempts) {
         // Conserve le dépôt des voyages pour les opérations de lecture et de création.
         this.tripRepository = tripRepository;
         // Conserve le dépôt des pays pour réutiliser les pays déjà connus.
@@ -62,6 +70,10 @@ public class TravelDataService {
         this.expenseRepository = expenseRepository;
         // Conserve le dépôt des titres pour les enregistrer et les supprimer.
         this.ticketRepository = ticketRepository;
+        // Conserve l’encodeur pour contrôler le mot de passe actuel.
+        this.passwordEncoder = passwordEncoder;
+        // Conserve le suivi des tentatives pour bloquer les essais répétés.
+        this.loginAttempts = loginAttempts;
     }
 
     // La lecture seule évite de modifier accidentellement les données en listant les voyages.
@@ -275,6 +287,11 @@ public class TravelDataService {
     public ProfileResponse updateProfile(ProfileRequest request) {
         // Charge le compte à modifier à partir de la session authentifiée.
         User user = requireCurrentUser();
+        String newEmail = request.email().trim().toLowerCase(java.util.Locale.ROOT);
+        // Changer d’adresse change l’identifiant de connexion : le mot de passe actuel est exigé.
+        if (!newEmail.equalsIgnoreCase(user.getEmail())) {
+            requireCurrentPassword(user, request.currentPassword());
+        }
         // Refuse une adresse déjà utilisée par un autre compte, sans bloquer le compte courant.
         userRepository.findByEmailIgnoreCase(request.email().trim())
                 .filter(existing -> !existing.getId().equals(user.getId()))
@@ -286,7 +303,7 @@ public class TravelDataService {
         user.setFirstName(request.firstName().trim());
         user.setLastName(request.lastName().trim());
         // Normalise l’adresse en minuscules pour éviter les doublons dus à la casse.
-        user.setEmail(request.email().trim().toLowerCase(java.util.Locale.ROOT));
+        user.setEmail(newEmail);
         // Met à jour les autres informations facultatives du profil.
         user.setBirthDate(request.birthDate());
         user.setNationality(request.nationality());
@@ -301,7 +318,8 @@ public class TravelDataService {
         // Lit l’authentification fournie par le contexte de sécurité Spring.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         // Interrompt la requête si aucun utilisateur authentifié n’est présent.
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken
+                || !authentication.isAuthenticated()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentification requise.");
         }
         // Le JWT contient l’identifiant dans son sujet ; sinon, le nom de session sert d’identifiant.
@@ -323,6 +341,23 @@ public class TravelDataService {
     }
 
     // Charge un voyage uniquement s’il appartient à la personne connectée.
+    // Refuse l’opération si le mot de passe actuel est absent ou faux, avec la même limite d’essais qu’à la connexion.
+    private void requireCurrentPassword(User user, String currentPassword) {
+        if (loginAttempts.isBlocked(user.getEmail())) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Trop de tentatives. Réessayez plus tard.");
+        }
+        if (currentPassword == null || currentPassword.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le mot de passe actuel est requis pour changer l'adresse e-mail.");
+        }
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            loginAttempts.recordFailure(user.getEmail());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Mot de passe actuel incorrect.");
+        }
+        loginAttempts.reset(user.getEmail());
+    }
+
     private Trip requireOwnedTrip(Long tripId) {
         // Détermine le propriétaire à partir de la session vérifiée.
         User user = requireCurrentUser();

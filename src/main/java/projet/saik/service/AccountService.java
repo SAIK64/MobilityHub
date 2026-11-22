@@ -1,6 +1,7 @@
 package projet.saik.service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -53,9 +54,9 @@ public class AccountService {
         // Enregistre uniquement l’empreinte du mot de passe, jamais le texte en clair.
         user.setPassword(passwords.encode(password));
         // Attribue le rôle standard et signale une configuration incomplète s’il est absent.
-        user.setRoles(Set.of(roles.findByName("ROLE_USER")
-                .orElseThrow(() -> new IllegalStateException("Le rôle utilisateur est absent."))));
-        // Persiste le compte et force l’écriture pour obtenir les erreurs de base immédiatement.
+        // Ensemble modifiable : Hibernate le gère et on pourra ajouter d’autres rôles plus tard.
+        user.setRoles(new HashSet<>(Set.of(roles.findByName("ROLE_USER")
+                .orElseThrow(() -> new IllegalStateException("Le rôle utilisateur est absent.")))));
         return users.saveAndFlush(user);
     }
 }
