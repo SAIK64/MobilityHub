@@ -153,8 +153,11 @@ class AdminSecurityTests {
     }
 
     private void register(String email) throws Exception {
+        // L’inscription exige un prénom et un nom en plus des identifiants.
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                .content(credentials(email, PASSWORD))).andExpect(status().isCreated());
+                .content("{\"firstName\":\"Test\",\"lastName\":\"User\","
+                        + "\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}"))
+                .andExpect(status().isCreated());
     }
 
     private String login(String email, String password) throws Exception {
