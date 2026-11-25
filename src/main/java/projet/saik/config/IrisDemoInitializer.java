@@ -64,8 +64,8 @@ public class IrisDemoInitializer {
                 // Prépare le séjour associé au compte Iris.
                 Trip trip = new Trip();
                 trip.setName("Chine — Découverte & Aventure");
-                trip.setStartDate(LocalDate.of(2026, 3, 1));
-                trip.setEndDate(LocalDate.of(2026, 3, 21));
+                trip.setStartDate(LocalDate.of(2027, 3, 1));
+                trip.setEndDate(LocalDate.of(2027, 3, 21));
                 trip.setUser(iris);
                 trip.getCountries().add(china);
                 // Crée aussi un budget vide pour le séjour.
