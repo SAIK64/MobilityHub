@@ -95,6 +95,7 @@ function initializeTrips() {
       announce(`Voyage sélectionné : ${title}.`);
     });
   });
+  bindTripModalMode();
   if (new URLSearchParams(window.location.search).get('action') === 'new-trip') {
     window.openModal?.();
   }
@@ -189,6 +190,17 @@ function appendSavedTripCard(trip) {
   select.type = 'button';
   select.dataset.appHandled = 'true';
   select.addEventListener('click', () => selectTripCard(card));
+  const edit = createTextElement('button', 'rounded-lg bg-surface-container px-space-md py-2 font-label-md text-label-md text-primary hover:bg-surface-container-high transition-colors', 'Modifier');
+  edit.type = 'button';
+  edit.dataset.appHandled = 'true';
+  edit.addEventListener('click', () => openTripEditor(trip));
+  const remove = createTextElement('button', 'rounded-lg px-space-md py-2 font-label-md text-label-md text-error hover:bg-error-container transition-colors', 'Supprimer');
+  remove.type = 'button';
+  remove.dataset.appHandled = 'true';
+  remove.addEventListener('click', () => deleteTrip(trip));
+  const actions = document.createElement('div');
+  actions.className = 'flex flex-wrap items-center gap-space-sm';
+  actions.append(select, edit, remove);
   const countryManager = document.createElement('form');
   countryManager.className = 'flex flex-wrap items-end gap-2';
   countryManager.dataset.tripCountryManager = String(trip.id);
@@ -213,7 +225,7 @@ function appendSavedTripCard(trip) {
   addCountryButton.dataset.appHandled = 'true';
   countryManager.append(nameInput, isoInput, addCountryButton);
   countryManager.addEventListener('submit', (event) => addTripCountry(event, trip, countryManager));
-  card.append(details, countryManager, select);
+  card.append(details, countryManager, actions);
   container.append(card);
   updateTripCounts();
 }
@@ -270,6 +282,13 @@ function updateTripCountries(trip, updatedTrip) {
   const card = document.querySelector(`[data-saved-trip-card="${trip.id}"]`);
   if (card) {
     const countries = trip.countries || [];
+    const today = new Date().toISOString().slice(0, 10);
+    const status = trip.end < today ? 'Archivé' : trip.start > today ? 'Futur' : 'Actif';
+    card.dataset.tripStatus = status;
+    const heading = card.querySelector('h4');
+    if (heading) heading.textContent = trip.name;
+    const badge = heading?.parentElement?.querySelector('span');
+    if (badge) badge.textContent = status;
     const summary = card.querySelector('[data-trip-country-summary]');
     const dates = `${trip.start} - ${trip.end}`;
     summary.textContent = `${countries.map((country) => `${country.country} (${country.iso})`).join(', ')} · ${dates}`;
@@ -277,13 +296,124 @@ function updateTripCountries(trip, updatedTrip) {
     renderTripCountryList(trip, list);
     const isoBadge = card.querySelector('.w-12');
     if (isoBadge) isoBadge.textContent = countries.map((country) => country.iso).join(', ');
+    updateTripCounts();
   }
   const menuButton = document.querySelector(`[data-saved-trip="${trip.id}"]`);
   if (menuButton) {
+    const nameLabel = menuButton.querySelector('.font-label-lg');
+    if (nameLabel) nameLabel.textContent = trip.name;
     const label = menuButton.querySelector('.text-on-surface-variant');
     if (label) label.textContent = (trip.countries || []).map((country) => country.country).join(', ');
   }
   if (String(currentTripId) === String(trip.id)) selectDatabaseTrip(trip, false);
+}
+
+async function updateTrip(trip, payload) {
+  const updatedTrip = await apiRequest(`/api/trips/${trip.id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+  updateTripCountries(trip, updatedTrip);
+  return trip;
+}
+
+async function deleteTrip(trip) {
+  if (!window.confirm(`Supprimer le voyage « ${trip.name} » ? Les billets et dépenses associés seront également retirés.`)) {
+    return;
+  }
+  try {
+    await apiRequest(`/api/trips/${trip.id}`, { method: 'DELETE' });
+    setDatabaseTrips(databaseTrips.filter((item) => String(item.id) !== String(trip.id)));
+    document.querySelector(`[data-saved-trip-card="${trip.id}"]`)?.remove();
+    document.querySelector(`[data-saved-trip="${trip.id}"]`)?.remove();
+    const container = savedTripsContainer();
+    if (container && !container.querySelector('[data-saved-trip-card]')) {
+      const empty = createTextElement('p', 'text-on-surface-variant', 'Aucun voyage enregistré. Créez votre premier voyage.');
+      empty.dataset.emptyTrips = 'true';
+      container.append(empty);
+    }
+    updateTripCounts();
+    if (String(currentTripId) === String(trip.id)) {
+      const fallback = databaseTrips[0];
+      if (fallback) selectDatabaseTrip(fallback, false);
+      else {
+        clearDatabaseTripSelection();
+        document.querySelectorAll('[data-selected-trip]').forEach((element) => {
+          element.textContent = 'Aucun voyage sélectionné. Créez un voyage depuis le tableau de bord.';
+        });
+      }
+    }
+    announce(`Voyage « ${trip.name} » supprimé.`);
+  } catch (error) {
+    announceRequestError('Impossible de supprimer le voyage', error);
+  }
+}
+
+function resetTripFormMode() {
+  const form = document.getElementById('newTripForm');
+  if (!form) return;
+  delete form.dataset.editingTripId;
+  const title = document.getElementById('tripModalTitle');
+  if (title) title.textContent = 'Nouveau Voyage & Destination';
+  const submit = document.getElementById('tripSubmitButton');
+  if (submit) submit.textContent = 'Créer et Enregistrer';
+}
+
+function bindTripModalMode() {
+  const originalOpen = window.openModal;
+  window.openModal = () => {
+    if (!document.getElementById('newTripForm')?.dataset.editingTripId) {
+      resetTripFormMode();
+      initializeTripCountryRows();
+    }
+    originalOpen?.();
+  };
+  const originalClose = window.closeModal;
+  window.closeModal = () => {
+    originalClose?.();
+    resetTripFormMode();
+    document.getElementById('newTripForm')?.reset();
+    initializeTripCountryRows();
+  };
+}
+
+function openTripEditor(trip) {
+  const form = document.getElementById('newTripForm');
+  const container = document.getElementById('tripCountriesContainer');
+  if (!form || !container) return;
+  const template = container.querySelector('[data-trip-country-row]');
+  form.dataset.editingTripId = String(trip.id);
+  document.getElementById('tripModalTitle').textContent = 'Modifier le voyage';
+  document.getElementById('tripSubmitButton').textContent = 'Enregistrer les modifications';
+  document.getElementById('tripNameInput').value = trip.name;
+  document.getElementById('tripStartInput').value = trip.start;
+  document.getElementById('tripEndInput').value = trip.end;
+  const countries = trip.countries?.length ? trip.countries : [{ country: trip.country, iso: trip.iso }];
+  container.replaceChildren();
+  countries.forEach((country) => {
+    const row = template.cloneNode(true);
+    row.querySelector('[data-country-name]').value = country.country;
+    row.querySelector('[data-country-iso]').value = country.iso;
+    container.append(row);
+  });
+  const rows = [...container.querySelectorAll('[data-trip-country-row]')];
+  rows.forEach((row) => {
+    const remove = row.querySelector('[data-remove-trip-country]');
+    remove.disabled = rows.length === 1;
+    remove.classList.toggle('opacity-40', rows.length === 1);
+  });
+  window.openModal?.();
+}
+
+function readTripForm() {
+  const name = document.getElementById('tripNameInput').value.trim();
+  const countries = [...document.querySelectorAll('#tripCountriesContainer [data-trip-country-row]')].map((row) => ({
+    country: row.querySelector('[data-country-name]').value.trim(),
+    iso: row.querySelector('[data-country-iso]').value.trim().toUpperCase()
+  }));
+  const start = document.getElementById('tripStartInput').value;
+  const end = document.getElementById('tripEndInput').value;
+  return { name, countries, start, end };
 }
 
 // Active les boutons et interactions propres au tableau de bord.
@@ -367,14 +497,7 @@ function initializeDashboardControls() {
 window.handleNewTripSubmit = async (event) => {
   // Empêche le navigateur de recharger la page à l’envoi du formulaire.
   event.preventDefault();
-  // Lit et nettoie les champs saisis par la personne.
-  const name = document.getElementById('tripNameInput').value.trim();
-  const countries = [...document.querySelectorAll('#tripCountriesContainer [data-trip-country-row]')].map((row) => ({
-    country: row.querySelector('[data-country-name]').value.trim(),
-    iso: row.querySelector('[data-country-iso]').value.trim().toUpperCase()
-  }));
-  const start = document.getElementById('tripStartInput').value;
-  const end = document.getElementById('tripEndInput').value;
+  const { name, countries, start, end } = readTripForm();
   // Vérifie dans le navigateur le format du code pays avant l’appel réseau.
   if (countries.some(({ iso }) => !/^[A-Z]{2}$/.test(iso))) {
     announce('Chaque code pays doit contenir exactement deux lettres.');
@@ -386,11 +509,21 @@ window.handleNewTripSubmit = async (event) => {
     return;
   }
 
+  const editingId = document.getElementById('newTripForm').dataset.editingTripId;
+  const payload = { name, countries, start, end };
   try {
+    if (editingId) {
+      const trip = databaseTrips.find((item) => String(item.id) === String(editingId));
+      if (!trip) throw new Error('Le voyage à modifier est introuvable.');
+      await updateTrip(trip, payload);
+      window.closeModal();
+      announce('Voyage mis à jour.');
+      return;
+    }
     // Envoie les informations du voyage au serveur pour les enregistrer.
     const trip = await apiRequest('/api/trips', {
       method: 'POST',
-      body: JSON.stringify({ name, countries, start, end })
+      body: JSON.stringify(payload)
     });
     // Met à jour la liste locale et les différentes représentations du voyage.
     databaseTrips.push(trip);
@@ -400,12 +533,10 @@ window.handleNewTripSubmit = async (event) => {
     selectDatabaseTrip(trip, false);
     // Ferme le formulaire, le réinitialise puis confirme l’enregistrement.
     window.closeModal();
-    document.getElementById('newTripForm').reset();
-    initializeTripCountryRows();
     announce('Voyage enregistré dans la base H2.');
   } catch (error) {
     // Affiche une explication si le serveur n’a pas pu enregistrer le voyage.
-    announceRequestError('Impossible d’enregistrer le voyage', error);
+    announceRequestError(editingId ? 'Impossible de modifier le voyage' : 'Impossible d’enregistrer le voyage', error);
   }
 };
 
