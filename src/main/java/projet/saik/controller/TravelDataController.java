@@ -54,6 +54,21 @@ public class TravelDataController {
         return travelDataService.createTrip(request);
     }
 
+    // Update un voyage existant avec les données reçues après validation.
+    @PutMapping("/trips/{tripId}")
+    public TripResponse updateTrip(@PathVariable Long tripId, @Valid @RequestBody TripRequest request) {
+        // Délègue la mise à jour et renvoie le voyage modifié pour confirmation.
+        return travelDataService.updateTrip(tripId, request);
+    }
+
+    // Supprime un voyage et toutes ses données associées.
+    @DeleteMapping("/trips/{tripId}")
+    public TripResponse deleteTrip(@PathVariable Long tripId) {
+        // Délègue la suppression et renvoie le voyage supprimé pour confirmation.
+        return travelDataService.deleteTrip(tripId);
+    }
+
+
     @PostMapping("/trips/{tripId}/countries")
     public TripResponse addCountry(@PathVariable Long tripId, @Valid @RequestBody CountryRequest request) {
         return travelDataService.addCountry(tripId, request);

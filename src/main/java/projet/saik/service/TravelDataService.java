@@ -146,10 +146,60 @@ public class TravelDataService {
         return toTripResponse(tripRepository.save(trip));
     }
 
+    @Transactional 
+    public TripResponse updateTrip(Long tripId, TripRequest request) {
+        // Refuse une période incohérente avant toute écriture en base.
+        if (request.end().isBefore(request.start())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La date de fin doit suivre la date de départ.");
+        }
+
+        // Vérifie que le voyage appartient bien à la personne connectée.
+        Trip trip = requireOwnedTrip(tripId);
+        // Nettoie le nom fourni avant de l’enregistrer.
+        trip.setName(request.name().trim());
+        // Met à jour les dates du séjour.
+        trip.setStartDate(request.start());
+        trip.setEndDate(request.end());
+
+        // Réutilise les pays connus et évite les doublons dans les destinations du voyage.
+        List<CountryRequest> requestedCountries = request.countries() == null || request.countries().isEmpty()
+                ? (request.country() == null || request.iso() == null
+                        ? List.of()
+                        : List.of(new CountryRequest(request.country(), request.iso())))
+                : request.countries();
+        if (requestedCountries.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins un pays est requis.");
+        }
+        trip.getCountries().clear();
+        requestedCountries.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        country -> country.iso().trim().toUpperCase(),
+                        country -> country,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new))
+                .forEach((iso, requestedCountry) -> trip.getCountries().add(getOrCreateCountry(requestedCountry, iso)));
+
+        // Enregistre le voyage mis à jour et renvoie sa représentation destinée à l’API.
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    @Transactional 
+    public TripResponse deleteTrip(Long tripId) {
+        // Vérifie que le voyage appartient bien à la personne connectée.
+        Trip trip = requireOwnedTrip(tripId);
+        // Supprime le voyage et toutes les données qui lui sont liées.
+        tripRepository.delete(trip);
+        // Renvoie les informations du voyage supprimé pour confirmation.
+        return toTripResponse(trip);
+    }
+
     @Transactional
     public TripResponse addCountry(Long tripId, CountryRequest request) {
         Trip trip = requireOwnedTrip(tripId);
         String iso = request.iso().trim().toUpperCase();
+        // TO DO 
+        // mettre le iso en enum pour éviter les erreurs de saisie
+        //
         Country country = getOrCreateCountry(request, iso);
         boolean alreadyAssociated = trip.getCountries().stream()
                 .anyMatch(existing -> existing.getCodeIso().equalsIgnoreCase(iso));
