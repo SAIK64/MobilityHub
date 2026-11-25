@@ -105,6 +105,48 @@ public class TicketService {
         return toTicketResponse(ticketRepository.save(ticket));
     }
 
+    // Update un titre existant après vérification de la propriété du voyage.
+    @Transactional
+    public TicketResponse updateTicket(Long ticketId, TicketRequest request) {
+        // Recherche le titre ou répond avec une erreur 404 s’il est absent.
+        TransportTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Titre introuvable."));
+        // Contrôle que le titre appartient bien à un voyage de la personne connectée.
+        access.requireOwnedTrip(ticket.getTrip().getId());
+
+        // Met à jour les champs modifiables du titre.
+        ticket.setTransportType(request.type().trim());
+        ticket.setManualDescription(request.description().trim());
+        ticket.setDeparture(request.departure());
+        ticket.setArrival(request.arrival());
+        ticket.setDepartureTime(request.departureTime());
+        ticket.setArrivalTime(request.arrivalTime());
+        ticket.setPrice(request.price());
+        ticket.setApiBookingReference(request.reference());
+        ticket.setAttachmentName(request.attachmentName());
+
+        if ("Avion".equalsIgnoreCase(request.type().trim())) {
+            FlightDetails flightDetails = toFlightDetails(request);
+            ticket.setFlightDetails(flightDetails);
+            ticket.setDeparture(flightDetails.getDepartureAirport() + " (" + flightDetails.getDepartureIata() + ")");
+            ticket.setArrival(flightDetails.getArrivalAirport() + " (" + flightDetails.getArrivalIata() + ")");
+        } else {
+            ticket.setFlightDetails(null);
+        }
+
+        // Met à jour la dépense générée si elle existe.
+        Expense generatedExpense = ticket.getGeneratedExpense();
+        if (generatedExpense != null) {
+            generatedExpense.setDescription(request.description().trim());
+            generatedExpense.setAmount(request.price());
+            generatedExpense.setExpenseDate(request.departureTime().toLocalDate());
+            expenseRepository.save(generatedExpense);
+        }
+
+        // Sauvegarde le titre et renvoie ses données à l’interface.
+        return toTicketResponse(ticketRepository.save(ticket));
+    }
+
     // Supprime un titre et la dépense automatique qu’il aurait créée.
     @Transactional
     public void deleteTicket(Long ticketId) {

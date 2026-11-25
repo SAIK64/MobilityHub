@@ -106,6 +106,13 @@ public class TravelDataController {
         return ticketService.createTicket(tripId, request);
     }
 
+    // update un titre de transport existant avec les données reçues après validation.
+    @PutMapping("/tickets/{ticketId}")
+    public TicketResponse updateTicket(@PathVariable Long ticketId, @Valid @RequestBody TicketRequest request) {
+        // Le service vérifie que le titre appartient à un voyage de l’utilisateur et met à jour les informations.
+        return ticketService.updateTicket(ticketId, request);
+    }
+
     // Supprime le titre correspondant à l’identifiant fourni.
     @DeleteMapping("/tickets/{ticketId}")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long ticketId) {
