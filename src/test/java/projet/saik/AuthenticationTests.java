@@ -147,11 +147,7 @@ class AuthenticationTests {
                 .andExpect(status().isOk());
         mvc.perform(put("/api/profile").session(session).header(header, token)
                 .contentType(MediaType.APPLICATION_JSON).content("""
-<<<<<<< HEAD
                {"firstName":"Web","lastName":"User","email":"web-changed@example.test","currentPassword":"password-web"}
-=======
-                {"firstName":"Web","lastName":"User","email":"web-changed@example.test","birthDate":"2000-02-29","nationality":"Française"}
->>>>>>> template
                 """)).andExpect(status().isOk());
         mvc.perform(get("/api/profile").session(session))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("web-changed@example.test"))
