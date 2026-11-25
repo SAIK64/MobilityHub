@@ -42,6 +42,7 @@ application-dev.properties
 ### BDD H2 (fichiers locaux non versionnés) ###
 data/*
 !data/.gitkeep
+!data/saikdb.mv.db
 *.lock.db
 *.trace.db
 
