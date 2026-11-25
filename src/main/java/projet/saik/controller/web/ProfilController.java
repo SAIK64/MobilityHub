@@ -2,7 +2,10 @@ package projet.saik.controller.web;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -53,15 +56,23 @@ public class ProfilController {
         return "redirect:/profil";
     }
 
-    // Âge calculé à partir d'une date AAAA-MM-JJ, ou null si elle est absente / invalide.
+    // Formats de date de naissance acceptés : « 2005-03-05 » ou « 5 mars 2005 ».
+    private static final List<DateTimeFormatter> BIRTH_DATE_FORMATS = List.of(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("d MMMM uuuu", Locale.FRENCH));
+
+    // Âge calculé à partir de la date de naissance, ou null si elle est absente / invalide.
     private static Integer age(String birthDate) {
         if (birthDate == null || birthDate.isBlank()) return null;
-        try {
-            int years = Period.between(LocalDate.parse(birthDate.trim()), LocalDate.now()).getYears();
-            return years >= 0 ? years : null;
-        } catch (DateTimeParseException ex) {
-            return null;
+        for (DateTimeFormatter format : BIRTH_DATE_FORMATS) {
+            try {
+                int years = Period.between(LocalDate.parse(birthDate.trim(), format), LocalDate.now()).getYears();
+                return years >= 0 ? years : null;
+            } catch (DateTimeParseException ex) {
+                // Essaie le format suivant.
+            }
         }
+        return null;
     }
 
     private static String trim(String value) {

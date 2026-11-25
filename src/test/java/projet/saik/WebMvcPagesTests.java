@@ -197,6 +197,15 @@ class WebMvcPagesTests {
                 .andExpect(model().attributeExists("profile", "age"))
                 .andExpect(content().string(allOf(containsString("Marie Modèle"), containsString("value=\"Française\""))));
 
+        // L'âge est aussi calculé pour une date écrite en français (format des données de démonstration).
+        mvc.perform(post("/profil").session(session).with(csrf())
+                .param("firstName", "Marie").param("lastName", "Modèle").param("email", "mvc@example.test")
+                .param("birthDate", "05 mars 2005"))
+                .andExpect(redirectedUrl("/profil"));
+        mvc.perform(get("/profil").session(session))
+                .andExpect(model().attribute("age", java.time.Period.between(
+                        java.time.LocalDate.of(2005, 3, 5), java.time.LocalDate.now()).getYears()));
+
         // Suppression du voyage.
         mvc.perform(post("/dashboard/trips/" + tripId + "/delete").session(session).with(csrf()))
                 .andExpect(redirectedUrl("/dashboard"));
