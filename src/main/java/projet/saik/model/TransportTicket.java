@@ -30,6 +30,12 @@ public class TransportTicket {
     // Nom du justificatif choisi, sans enregistrer le fichier lui-même.
     private String attachmentName;
 
+    // Informations propres aux transports terrestres et maritimes (train, VTC/taxi, bus, ferry).
+    // Exemple pour un train : opérateur « SNCF », numéro « TGV 6611 », place « Voiture 12, place 45 ».
+    private String operatorName;
+    private String serviceNumber;
+    private String seatInfo;
+
     @Embedded
     private FlightDetails flightDetails;
 
@@ -86,6 +92,18 @@ public class TransportTicket {
     public String getAttachmentName() { return attachmentName; }
     // Enregistre le nom du justificatif, sans stocker son contenu.
     public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
+
+    // Opérateur ou compagnie (SNCF, compagnie de bus, chauffeur…).
+    public String getOperatorName() { return operatorName; }
+    public void setOperatorName(String operatorName) { this.operatorName = operatorName; }
+
+    // Numéro de train, ligne de bus, référence de course ou nom du navire.
+    public String getServiceNumber() { return serviceNumber; }
+    public void setServiceNumber(String serviceNumber) { this.serviceNumber = serviceNumber; }
+
+    // Voiture et siège, place, cabine ou instructions de prise en charge.
+    public String getSeatInfo() { return seatInfo; }
+    public void setSeatInfo(String seatInfo) { this.seatInfo = seatInfo; }
 
     public FlightDetails getFlightDetails() { return flightDetails; }
     public void setFlightDetails(FlightDetails flightDetails) { this.flightDetails = flightDetails; }

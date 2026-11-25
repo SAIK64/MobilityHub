@@ -38,25 +38,31 @@ public class DashboardController {
     @GetMapping({ "/", "/dashboard" })
     public String dashboard(Principal principal, Model model,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) Long edit) {
         if (principal == null) {
             return "accueil";
         }
-        // « trips » et « selectedTrip » sont fournis par LayoutAdvice.
+        // « trips » (tous les voyages) et « selectedTrip » sont fournis par LayoutAdvice.
         @SuppressWarnings("unchecked")
         List<TripView> trips = (List<TripView>) model.getAttribute("trips");
 
-        // Compteurs des onglets de filtre.
+        // Recherche en base : seuls les voyages correspondant au texte sont listés.
+        String query = q == null || q.isBlank() ? null : q.trim();
+        List<TripView> found = query == null ? trips : TripView.of(tripService.searchTrips(query), LocalDate.now());
+        model.addAttribute("q", query);
+
+        // Compteurs des onglets de filtre (calculés sur les résultats de la recherche).
         Map<String, Long> counts = new LinkedHashMap<>();
-        counts.put("Tous", (long) trips.size());
+        counts.put("Tous", (long) found.size());
         for (String s : List.of(TripView.ACTIVE, TripView.FUTURE, TripView.ARCHIVED)) {
-            counts.put(s, trips.stream().filter(t -> t.getStatus().equals(s)).count());
+            counts.put(s, found.stream().filter(t -> t.getStatus().equals(s)).count());
         }
         String activeFilter = counts.containsKey(status) ? status : "Tous";
         model.addAttribute("counts", counts);
         model.addAttribute("activeFilter", activeFilter);
-        model.addAttribute("filteredTrips", "Tous".equals(activeFilter) ? trips
-                : trips.stream().filter(t -> t.getStatus().equals(activeFilter)).toList());
+        model.addAttribute("filteredTrips", "Tous".equals(activeFilter) ? found
+                : found.stream().filter(t -> t.getStatus().equals(activeFilter)).toList());
 
         // Une ligne « pays » vide pour le formulaire de création.
         model.addAttribute("emptyCountryRow", java.util.Collections.singletonList(null));

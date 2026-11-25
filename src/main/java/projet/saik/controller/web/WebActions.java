@@ -27,12 +27,18 @@ public class WebActions {
             action.run();
             flash.addFlashAttribute("message", success);
             return true;
-        } catch (ResponseStatusException ex) {
-            flash.addFlashAttribute("error", ex.getReason() != null ? ex.getReason() : "Action impossible.");
-        } catch (IllegalArgumentException ex) {
-            flash.addFlashAttribute("error", ex.getMessage());
+        } catch (ResponseStatusException | IllegalArgumentException ex) {
+            flash.addFlashAttribute("error", errorMessage(ex));
+            return false;
         }
-        return false;
+    }
+
+    // Message lisible pour une erreur métier (service) ou de validation (formulaire).
+    public String errorMessage(RuntimeException ex) {
+        if (ex instanceof ResponseStatusException status) {
+            return status.getReason() != null ? status.getReason() : "Action impossible.";
+        }
+        return ex.getMessage();
     }
 
     // Applique les contraintes (@NotBlank, @Pattern…) déclarées sur les DTO, comme le fait @Valid pour l'API.

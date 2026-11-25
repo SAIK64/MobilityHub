@@ -147,6 +147,43 @@ class TravelDataServiceTests {
     }
 
     @Test
+    // Modifier le prix d’un billet crée, met à jour ou supprime sa dépense « Transport ».
+    void updatingTicketPriceKeepsGeneratedExpenseInSync() {
+        var trip = tripService.createTrip(new TripRequest(
+                "Séjour prix", "France", "FR",
+                LocalDate.of(2030, 5, 1), LocalDate.of(2030, 5, 5)));
+        // Billet gratuit : aucune dépense.
+        var ticket = ticketService.createTicket(trip.id(), new TicketRequest(
+                "Bus", "Navette", "Gare", "Hôtel",
+                LocalDateTime.of(2030, 5, 1, 9, 0), null, 0.0, null, null));
+        assertEquals(0, expenseRepository.count());
+
+        // Passage à 80 € : la dépense est créée.
+        ticketService.updateTicket(ticket.id(), new TicketRequest(
+                "Bus", "Navette payante", "Gare", "Hôtel",
+                LocalDateTime.of(2030, 5, 2, 9, 0), null, 80.0, null, null));
+        var expenses = budgetService.getExpenses(trip.id());
+        assertEquals(1, expenses.size());
+        assertEquals(80.0, expenses.get(0).amount(), 0.001);
+        assertEquals("Navette payante", expenses.get(0).description());
+        assertEquals(LocalDate.of(2030, 5, 2), expenses.get(0).date());
+
+        // Passage à 95 € : la même dépense est mise à jour.
+        ticketService.updateTicket(ticket.id(), new TicketRequest(
+                "Bus", "Navette payante", "Gare", "Hôtel",
+                LocalDateTime.of(2030, 5, 2, 9, 0), null, 95.0, null, null));
+        assertEquals(1, expenseRepository.count());
+        assertEquals(95.0, budgetService.getExpenses(trip.id()).get(0).amount(), 0.001);
+
+        // Retour à 0 € : la dépense disparaît du budget.
+        ticketService.updateTicket(ticket.id(), new TicketRequest(
+                "Bus", "Navette", "Gare", "Hôtel",
+                LocalDateTime.of(2030, 5, 2, 9, 0), null, 0.0, null, null));
+        assertEquals(0, expenseRepository.count());
+        assertEquals(1, ticketRepository.count());
+    }
+
+    @Test
     // Vérifie la conservation des détails d’un vol et le calcul tenant compte des fuseaux horaires.
     void persistsFlightDetailsAndCalculatesElapsedDuration() {
         var trip = tripService.createTrip(new TripRequest(

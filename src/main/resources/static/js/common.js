@@ -70,18 +70,6 @@ function announce(message) {
   toast.hideTimer = window.setTimeout(() => toast.classList.add('hidden'), 3500);
 }
 
-// Crée un élément texte sans interpréter sa valeur comme du HTML.
-function createTextElement(tag, className, value) {
-  // Construit l’élément demandé.
-  const element = document.createElement(tag);
-  // Lui applique les classes visuelles reçues.
-  element.className = className;
-  // Insère le contenu comme du texte pour éviter d’interpréter du HTML fourni.
-  element.textContent = value;
-  // Retourne l’élément prêt à être ajouté à la page.
-  return element;
-}
-
 // Prépare un téléchargement local à partir d’un contenu généré dans le navigateur.
 function downloadFile(name, content, type) {
   // Crée une URL temporaire qui représente le fichier à télécharger.
@@ -99,4 +87,4 @@ function downloadFile(name, content, type) {
 }
 
 
-export { apiRequest, announce, announceRequestError, createTextElement, downloadFile };
+export { apiRequest, announce, announceRequestError, downloadFile };

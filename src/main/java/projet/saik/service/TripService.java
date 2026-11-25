@@ -46,70 +46,63 @@ public class TripService {
                 .toList();
     }
 
+    // Recherche parmi les voyages de la personne connectée (nom du voyage, nom ou code ISO d’un pays).
+    @Transactional(readOnly = true)
+    public List<TripResponse> searchTrips(String query) {
+        // Une recherche vide revient à lister tous les voyages.
+        if (query == null || query.isBlank()) {
+            return getTrips();
+        }
+        User user = access.requireCurrentUser();
+        return tripRepository.searchByUser(user.getId(), query.trim())
+                .stream()
+                .map(this::toTripResponse)
+                .toList();
+    }
+
     @Transactional
     public TripResponse createTrip(TripRequest request) {
         // Refuse une période incohérente avant toute écriture en base.
-        if (request.end().isBefore(request.start())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La date de fin doit suivre la date de départ.");
-        }
+        validateDates(request);
 
-        // Attache le nouveau voyage au compte authentifié.
-        User user = access.requireCurrentUser();
-        List<CountryRequest> requestedCountries = request.countries() == null || request.countries().isEmpty()
-                ? (request.country() == null || request.iso() == null
-                        ? List.of()
-                        : List.of(new CountryRequest(request.country(), request.iso())))
-                : request.countries();
-        if (requestedCountries.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins un pays est requis.");
-        }
-
-        // Prépare une nouvelle entité de voyage.
+        // Prépare une nouvelle entité de voyage, rattachée au compte authentifié.
         Trip trip = new Trip();
-        // Nettoie le nom fourni avant de l’enregistrer.
-        trip.setName(request.name().trim());
-        // Enregistre le premier jour du séjour.
-        trip.setStartDate(request.start());
-        // Enregistre le dernier jour du séjour.
-        trip.setEndDate(request.end());
-        // Lie le voyage à son propriétaire.
-        trip.setUser(user);
-        // Réutilise les pays connus et évite les doublons dans les destinations du voyage.
-        requestedCountries.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        country -> country.iso().trim().toUpperCase(),
-                        country -> country,
-                        (first, ignored) -> first,
-                        LinkedHashMap::new))
-                .forEach((iso, requestedCountry) -> trip.getCountries().add(getOrCreateCountry(requestedCountry, iso)));
+        trip.setUser(access.requireCurrentUser());
+        // Copie le nom, les dates et les pays demandés.
+        applyRequest(trip, request);
 
-        // Chaque voyage possède un budget créé au même moment.
+        // Chaque voyage possède un budget créé au même moment (relation 1-1).
         Budget budget = new Budget();
-        // Relie le budget au voyage.
         budget.setTrip(trip);
-        // Maintient aussi la relation dans l’objet voyage.
         trip.setBudget(budget);
 
-        // Enregistre le voyage, puis renvoie sa représentation destinée à l’API.
+        // Enregistre le voyage, puis renvoie sa représentation destinée à l’interface.
         return toTripResponse(tripRepository.save(trip));
     }
 
-    @Transactional 
+    @Transactional
     public TripResponse updateTrip(Long tripId, TripRequest request) {
         // Refuse une période incohérente avant toute écriture en base.
+        validateDates(request);
+
+        // Vérifie que le voyage appartient bien à la personne connectée, puis le met à jour.
+        Trip trip = access.requireOwnedTrip(tripId);
+        applyRequest(trip, request);
+
+        // Enregistre le voyage mis à jour et renvoie sa représentation destinée à l’interface.
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    // Règle commune à la création et à la modification : la fin du séjour ne peut pas précéder son début.
+    private void validateDates(TripRequest request) {
         if (request.end().isBefore(request.start())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La date de fin doit suivre la date de départ.");
         }
+    }
 
-        // Vérifie que le voyage appartient bien à la personne connectée.
-        Trip trip = access.requireOwnedTrip(tripId);
-        // Nettoie le nom fourni avant de l’enregistrer.
-        trip.setName(request.name().trim());
-        // Met à jour les dates du séjour.
-        trip.setStartDate(request.start());
-        trip.setEndDate(request.end());
-
-        // Réutilise les pays connus et évite les doublons dans les destinations du voyage.
+    // Copie le nom, les dates et la liste des pays de la requête dans le voyage (création ou modification).
+    private void applyRequest(Trip trip, TripRequest request) {
+        // Accepte la liste « countries » ou, pour compatibilité avec l’API, un seul pays « country » / « iso ».
         List<CountryRequest> requestedCountries = request.countries() == null || request.countries().isEmpty()
                 ? (request.country() == null || request.iso() == null
                         ? List.of()
@@ -118,6 +111,13 @@ public class TripService {
         if (requestedCountries.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins un pays est requis.");
         }
+
+        // Nettoie le nom et enregistre les dates du séjour.
+        trip.setName(request.name().trim());
+        trip.setStartDate(request.start());
+        trip.setEndDate(request.end());
+
+        // Remplace les pays du voyage : réutilise les pays connus et ignore les codes ISO en double.
         trip.getCountries().clear();
         requestedCountries.stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -126,9 +126,6 @@ public class TripService {
                         (first, ignored) -> first,
                         LinkedHashMap::new))
                 .forEach((iso, requestedCountry) -> trip.getCountries().add(getOrCreateCountry(requestedCountry, iso)));
-
-        // Enregistre le voyage mis à jour et renvoie sa représentation destinée à l’API.
-        return toTripResponse(tripRepository.save(trip));
     }
 
     @Transactional 

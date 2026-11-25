@@ -2,13 +2,6 @@
 // Les données (voyages, pays, statut…) sont rendues par le serveur via DashboardController :
 // ce fichier ne fait qu’améliorer l’ergonomie des formulaires.
 
-// Retourne l’identifiant du voyage sélectionné, fourni par le contrôleur dans l’attribut data-selected-trip-id.
-function requireSelectedTripId() {
-  const tripId = document.querySelector('[data-selected-trip-id]')?.dataset.selectedTripId;
-  if (!tripId) throw new Error('Crée d’abord un voyage ou sélectionne un voyage enregistré.');
-  return tripId;
-}
-
 // Permet d’ajouter / retirer des lignes « pays » dans le formulaire de voyage.
 function initializeTripCountryRows() {
   const container = document.getElementById('tripCountriesContainer');
@@ -47,4 +40,4 @@ function initializeConfirmForms() {
   });
 }
 
-export { requireSelectedTripId, initializeTripCountryRows, initializeConfirmForms };
+export { initializeTripCountryRows, initializeConfirmForms };

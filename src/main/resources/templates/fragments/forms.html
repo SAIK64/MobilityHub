@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- Champs de formulaire réutilisables, liés à l'objet du formulaire englobant (th:object).
+     « path » est le nom de la propriété (ex. 'flight.airline') : th:field génère name, id et value. -->
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <!-- Champ texte / nombre / date avec son libellé. -->
+    <div th:fragment="input(label, path, type, placeholder, required)" class="flex flex-col gap-1">
+      <label class="font-label-md text-label-md text-on-surface font-semibold"
+             th:for="${path}"
+             th:text="${required} ? ${label} + ' *' : ${label}">Libellé</label>
+      <input th:type="${type}" th:field="*{__${path}__}"
+             th:placeholder="${placeholder}" th:required="${required}"
+             th:step="${type == 'number'} ? 'any' : null"
+             class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-sm text-on-surface focus:outline-none focus:border-primary"/>
+    </div>
+
+    <!-- Liste déroulante : « choices » est une liste de paires {valeur, libellé}. -->
+    <div th:fragment="select(label, path, choices, required)" class="flex flex-col gap-1">
+      <label class="font-label-md text-label-md text-on-surface font-semibold"
+             th:for="${path}"
+             th:text="${required} ? ${label} + ' *' : ${label}">Libellé</label>
+      <select th:field="*{__${path}__}" th:required="${required}"
+              class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-sm text-on-surface focus:outline-none focus:border-primary">
+        <option th:each="choice : ${choices}" th:value="${choice[0]}" th:text="${choice[1]}">Choix</option>
+      </select>
+    </div>
+  </body>
+</html>

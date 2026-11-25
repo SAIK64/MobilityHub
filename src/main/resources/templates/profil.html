@@ -1,21 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>
-      Mon profil | SAIK Travel
-    </title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&amp;display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com">
-    </script>
-    <script src="/js/design-tokens.js">
-    </script>
-    <link rel="stylesheet" href="/css/design.css">
-    <script type="module" src="/js/travel-app.js">
-    </script>
-  </head>
+  <head th:replace="~{fragments/layout :: head('Mon profil')}"></head>
   <body class="bg-surface font-body-md text-on-surface antialiased">
     <header th:replace="~{fragments/layout :: appHeader}">
     </header>

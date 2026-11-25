@@ -44,8 +44,6 @@ window.exportTravelData = async () => {
   }
 };
 
-// Précise que l’application ne propose pas encore de révocation de sessions distantes.
-window.revokeSessions = () => announce('Aucun service de compte distant n’est configuré : aucune session n’a été révoquée.');
 
 function initializeProfile() {
   document.getElementById('birthDate')?.addEventListener('input', updateAgePreview);
