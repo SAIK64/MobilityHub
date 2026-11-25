@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!-- Guide pratique : regroupe les informations de sécurité, d’urgence et de connectivité. -->
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title>
+      Sécurité | SAIK Travel
+    </title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="web_dashboard" name="shell-type"/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style>
+@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }
+    </style>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="/js/design-tokens.js">
+    </script>
+    <link rel="stylesheet" href="/css/design.css">
+    <script type="module" src="/js/travel-app.js">
+    </script>
+  </head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <header th:replace="~{fragments/layout :: appHeader}">
+    </header>
+    <aside th:replace="~{fragments/layout :: sidebar('securite')}">
+    </aside>
+    <div class="pl-64">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+        <div class="flex flex-col w-full pb-space-2xl gap-space-xl">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md p-space-lg rounded-xl bg-surface-container shadow-sm">
+            <div class="flex items-start sm:items-center gap-space-md">
+              <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary shrink-0 shadow-md">
+                <span class="material-symbols-outlined text-[28px]" aria-hidden="true">
+                  health_and_safety
+                </span>
+              </div>
+              <div>
+                <h1 class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
+                  Kit de survie &amp; sécurité
+                </h1>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5" data-selected-trip>
+                  Chargement du voyage sélectionné…
+                </p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                  SAIK ne transmet pas votre position et ne contacte pas les services d’urgence.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
+            <section class="xl:col-span-7 flex flex-col gap-space-lg" aria-labelledby="emergency-title">
+              <div class="flex items-center gap-space-xs">
+                <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                  dialer_sip
+                </span>
+                <h2 id="emergency-title" class="font-headline-md text-headline-md text-primary font-bold">
+                  Numéros d’urgence prioritaires
+                </h2>
+              </div>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">
+                Les numéros de secours varient selon le pays. Vérifiez-les auprès des autorités compétentes avant votre départ.
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
+                  <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                    local_police
+                  </span>
+                  <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                    Police
+                  </h3>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    Recherchez le numéro local en cas de vol, d’agression ou d’accident.
+                  </p>
+                </article>
+                <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
+                  <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                    emergency
+                  </span>
+                  <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                    Secours médicaux et pompiers
+                  </h3>
+                  <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    Enregistrez les numéros locaux dans votre téléphone avant de partir.
+                  </p>
+                </article>
+              </div>
+            </section>
+            <section class="xl:col-span-5 flex flex-col gap-space-lg" aria-labelledby="consular-title">
+              <div class="flex items-center gap-space-xs">
+                <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                  account_balance
+                </span>
+                <h2 id="consular-title" class="font-headline-md text-headline-md text-primary font-bold">
+                  Réseau diplomatique
+                </h2>
+              </div>
+              <div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-md">
+                <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
+                  Conseils par destination
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Consultez les recommandations officielles et les coordonnées consulaires applicables à votre destination.
+                </p>
+                <a class="flex items-center justify-center gap-2 py-2 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-colors" href="https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/" target="_blank" rel="noopener noreferrer">
+                  Consulter les conseils aux voyageurs
+                </a>
+              </div>
+            </section>
+          </div>
+          <section class="flex flex-col gap-space-lg" aria-labelledby="connectivity-title">
+            <div class="flex items-center gap-space-xs">
+              <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                cell_tower
+              </span>
+              <h2 id="connectivity-title" class="font-headline-md text-headline-md text-primary font-bold">
+                Connectivité &amp; Internet mobile
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Forfait mobile
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez les tarifs et les options internationales auprès de votre opérateur.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Wi-Fi public
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Privilégiez les réseaux fiables et évitez les opérations sensibles sur un réseau public.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Avant le départ
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Conservez vos documents et contacts importants accessibles hors ligne.
+                </p>
+              </article>
+            </div>
+          </section>
+          <section class="flex flex-col gap-space-lg" aria-labelledby="preparation-title">
+            <div class="flex items-center gap-space-xs">
+              <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                gavel
+              </span>
+              <h2 id="preparation-title" class="font-headline-md text-headline-md text-primary font-bold">
+                Préparation &amp; formalités
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Documents de voyage
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez la validité de vos documents et les formalités d’entrée auprès des autorités concernées.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Assurance &amp; santé
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez votre couverture et les recommandations sanitaires avant de partir.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Contacts d’urgence
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Gardez les coordonnées de vos proches et de votre assurance à portée de main.
+                </p>
+              </article>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

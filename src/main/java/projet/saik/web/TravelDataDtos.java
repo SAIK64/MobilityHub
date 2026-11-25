@@ -1,0 +1,278 @@
+package projet.saik.web;
+
+import java.time.LocalDate;
+import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
+// définit les formats de données JSON échangés pour les voyages, dépenses, billets et profils.
+public final class TravelDataDtos {
+
+    // Empêche de créer une instance de cette classe utilitaire.
+    private TravelDataDtos() {
+    }
+
+    // Reçoit les informations nécessaires à la création d’un voyage.
+    public record TripRequest(
+            // Le nom du voyage doit être renseigné.
+            @NotBlank String name,
+            // Champs conservés pour les anciens clients qui n’envoient qu’un seul pays.
+            String country,
+            @Pattern(regexp = "[A-Za-z]{2}") String iso,
+            // Pays du voyage pour les clients prenant en charge plusieurs destinations.
+            List<@jakarta.validation.Valid CountryRequest> countries,
+            // La date de départ est obligatoire.
+            @NotNull LocalDate start,
+            // La date de retour est obligatoire.
+            @NotNull LocalDate end) {
+        public TripRequest(String name, String country, String iso, LocalDate start, LocalDate end) {
+            this(name, country, iso, null, start, end);
+        }
+
+        @AssertTrue(message = "Au moins un pays correctement renseigné est requis.")
+        public boolean hasCountries() {
+            return (countries != null && !countries.isEmpty())
+                    || (country != null && !country.isBlank() && iso != null && iso.matches("[A-Za-z]{2}"));
+        }
+    }
+
+    public record CountryRequest(
+            @NotBlank String country,
+            @NotBlank @Pattern(regexp = "[A-Za-z]{2}") String iso) {
+    }
+
+    public record CountryResponse(String country, String iso) {
+    }
+
+    // Renvoie au navigateur les informations utiles d’un voyage enregistré.
+    public record TripResponse(
+            // Identifiant attribué par la base de données.
+            Long id,
+            // Nom affiché dans l’interface.
+            String name,
+            // Nom du pays associé au voyage.
+            String country,
+            // Code à deux lettres du pays associé.
+            String iso,
+            // Tous les pays associés au voyage.
+            List<CountryResponse> countries,
+            // Date de départ enregistrée.
+            LocalDate start,
+            // Date de retour enregistrée.
+            LocalDate end) {
+    }
+
+    // Reçoit les détails d’un titre de transport à enregistrer.
+    public record TicketRequest(
+            // Type de transport, par exemple train ou avion.
+            @NotBlank String type,
+            // Description saisie par la personne.
+            @NotBlank String description,
+            // Ville ou lieu de départ, s’il est connu.
+            String departure,
+            // Ville ou lieu d’arrivée, s’il est connu.
+            String arrival,
+            // Date et heure de départ obligatoires.
+            @NotNull LocalDateTime departureTime,
+            // Date et heure d’arrivée facultatives.
+            LocalDateTime arrivalTime,
+            // Prix obligatoire, qui ne peut pas être négatif.
+            @NotNull @DecimalMin("0.0") Double price,
+            // Référence de réservation facultative.
+            String reference,
+            // Nom du fichier justificatif sélectionné, sans téléverser le fichier.
+            String attachmentName,
+            // Détails propres aux billets d’avion ; absents pour les autres transports.
+            FlightDetailsRequest flightDetails) {
+        public TicketRequest(String type, String description, String departure, String arrival,
+                LocalDateTime departureTime, LocalDateTime arrivalTime, Double price,
+                String reference, String attachmentName) {
+            this(type, description, departure, arrival, departureTime, arrivalTime, price,
+                    reference, attachmentName, null);
+        }
+    }
+
+    public record FlightDetailsRequest(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes) {
+    }
+
+    public record FlightDetailsResponse(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes,
+            Long durationMinutes) {
+    }
+
+    // Présente au navigateur un titre de transport enregistré.
+    public record TicketResponse(
+            // Identifiant du titre en base.
+            Long id,
+            // Type de transport.
+            String type,
+            // Description du titre.
+            String description,
+            // Lieu de départ.
+            String departure,
+            // Lieu d’arrivée.
+            String arrival,
+            // Date et heure de départ.
+            LocalDateTime departureTime,
+            // Date et heure d’arrivée, si elles existent.
+            LocalDateTime arrivalTime,
+            // Prix du titre.
+            Double price,
+            // Référence associée à la réservation.
+            String reference,
+            // Nom du justificatif sélectionné.
+            String attachmentName,
+            // Détails complémentaires présents uniquement pour un billet d’avion.
+            FlightDetailsResponse flightDetails) {
+    }
+
+
+    // Budgets reçus : total facultatif et montant alloué à chaque catégorie.
+    public record BudgetRequest(
+            @DecimalMin("0.0") Double plannedTotal,
+            Map<String, Double> categoryBudgets) {
+    }
+
+    // Budgets renvoyés au navigateur avec le total dépensé.
+    public record BudgetResponse(
+            Double plannedTotal,
+            Double actualTotal,
+            Map<String, Double> categoryBudgets) {
+    }
+
+    // Reçoit les données nécessaires à la création d’une dépense.
+    public record ExpenseRequest(
+            // Libellé de la dépense, obligatoirement renseigné.
+            @NotBlank String description,
+            // Montant obligatoire et positif ou nul.
+            @NotNull @DecimalMin("0.0") Double amount,
+            // Jour auquel la dépense a été effectuée.
+            @NotNull LocalDate date,
+            // Catégorie de dépense obligatoire.
+            @NotBlank String category,
+            // Moyen de paiement, facultatif.
+            String paymentMethod,
+            // Nom du justificatif, s’il y en a un.
+            String receiptName,
+            // Indique si la dépense vient automatiquement d’un titre.
+            Boolean autoGenerated) {
+    }
+
+    // Renvoie au navigateur les données d’une dépense enregistrée.
+    public record ExpenseResponse(
+            // Identifiant de la dépense en base.
+            Long id,
+            // Libellé affiché.
+            String description,
+            // Montant enregistré.
+            Double amount,
+            // Catégorie de la dépense.
+            String category,
+            // Date de la dépense.
+            LocalDate date,
+            // Moyen de paiement enregistré.
+            String paymentMethod,
+            // Nom du justificatif enregistré.
+            String receiptName,
+            // Indique si le montant a été généré automatiquement.
+            Boolean autoGenerated) {
+    }
+
+    // Reçoit les modifications apportées au profil de la personne connectée.
+    public record ProfileRequest(
+            // Prénom obligatoire.
+            @NotBlank String firstName,
+            // Nom obligatoire.
+            @NotBlank String lastName,
+            // Date de naissance facultative.
+            String birthDate,
+            // Nationalité facultative.
+            String nationality,
+            // Adresse e-mail obligatoire et au format valide.
+            @NotBlank @Email String email,
+            // Téléphone facultatif.
+            String phone,
+            // Numéro de passeport facultatif.
+            String passport,
+            // Mot de passe actuel, exigé uniquement pour changer l'adresse e-mail.
+            String currentPassword) {
+    }
+
+    // Renvoie les informations du profil sans exposer de données sensibles inutiles.
+    public record ProfileResponse(
+            // Prénom enregistré.
+            String firstName,
+            // Nom enregistré.
+            String lastName,
+            // Date de naissance enregistrée.
+            String birthDate,
+            // Nationalité enregistrée.
+            String nationality,
+            // Adresse e-mail enregistrée.
+            String email,
+            // Téléphone enregistré.
+            String phone,
+            // Numéro de passeport enregistré.
+            String passport) {
+    }
+}

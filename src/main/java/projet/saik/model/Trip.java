@@ -25,6 +25,7 @@ import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "trips")
+// Entité centrale d’un séjour, liée à son propriétaire, son pays, son budget et ses titres.
 public class Trip {
 
     @Id
@@ -40,10 +41,12 @@ public class Trip {
     @Column(nullable = false)
     private LocalDate endDate;
 
+    // Chaque voyage appartient à un utilisateur ; le compte n’est chargé qu’au besoin.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // Un voyage peut couvrir plusieurs pays, et un pays peut apparaître dans plusieurs voyages.
     @ManyToMany
     @JoinTable(
         name = "trips_countries",
@@ -52,25 +55,33 @@ public class Trip {
     )
     private Set<Country> countries = new HashSet<>();
 
+    // Le budget est lié au voyage et suit son cycle de vie.
     @OneToOne(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     private Budget budget;
 
+    // Les titres appartiennent au voyage et sont supprimés avec lui.
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TransportTicket> transportTickets = new ArrayList<>();
 
     public Trip() {}
 
+    // Calcule un texte d’état à partir des dates du séjour, sans stocker ce texte en base.
     @Transient
     public String getTimeRemaining() {
+        // Sans dates, aucun état temporel ne peut être calculé.
         if (startDate == null || endDate == null) return "";
+        // Compare les dates au jour courant.
         LocalDate today = LocalDate.now();
         if (today.isBefore(startDate)) {
+            // Le voyage n’a pas encore commencé : calcule le compte à rebours.
             long days = ChronoUnit.DAYS.between(today, startDate);
             return "Débute dans " + days + " jour(s)";
         } else if (!today.isAfter(endDate)) {
+            // Le séjour est en cours : calcule le nombre de jours restant.
             long days = ChronoUnit.DAYS.between(today, endDate);
             return "En cours — reste " + days + " jour(s)";
         } else {
+            // Toutes les autres dates correspondent à un voyage terminé.
             return "Voyage terminé";
         }
     }
@@ -94,6 +105,7 @@ public class Trip {
     public void setCountries(Set<Country> countries) { this.countries = countries; }
 
     public Budget getBudget() { return budget; }
+    // Synchronise les deux côtés de la relation voyage-budget.
     public void setBudget(Budget budget) {
         this.budget = budget;
         if (budget != null && budget.getTrip() != this) {

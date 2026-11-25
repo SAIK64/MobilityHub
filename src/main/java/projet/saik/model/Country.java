@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "countries")
+// Entité représentant un pays pouvant être associé à plusieurs voyages.
 public class Country {
 
     @Id
