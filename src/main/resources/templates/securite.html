@@ -43,31 +43,33 @@
                 </h2>
               </div>
               <p class="font-body-sm text-body-sm text-on-surface-variant">
-                Les numéros de secours varient selon le pays. Vérifiez-les auprès des autorités compétentes avant votre départ.
+                Les numéros ci-dessous proviennent du référentiel local SAIK. Ils sont fournis à titre indicatif : vérifiez-les auprès des autorités officielles avant le départ.
               </p>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
-                <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
-                  <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
-                    local_police
-                  </span>
-                  <h3 class="font-label-lg text-label-lg text-primary font-bold">
-                    Police
-                  </h3>
-                  <p class="font-body-sm text-body-sm text-on-surface-variant">
-                    Recherchez le numéro local en cas de vol, d’agression ou d’accident.
-                  </p>
+              <div th:if="${selectedTrip != null and !#lists.isEmpty(selectedTrip.countries)}"
+                   class="flex flex-col gap-space-md">
+                <article th:each="country : ${selectedTrip.countries}"
+                         class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
+                  <div class="flex items-center justify-between gap-space-sm">
+                    <h3 class="font-label-lg text-label-lg text-primary font-bold" th:text="${country.country}">Pays</h3>
+                    <span class="text-xs font-semibold tracking-wide text-on-surface-variant" th:text="${country.iso}">ISO</span>
+                  </div>
+                  <div th:with="info=${emergencyByIso[country.iso]}">
+                    <div th:if="${info != null}" class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Urgence générale</p><p class="font-headline-sm text-primary font-bold" th:text="${info.emergency}">112</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Police</p><p class="font-headline-sm text-primary font-bold" th:text="${info.police}">17</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Ambulance</p><p class="font-headline-sm text-primary font-bold" th:text="${info.ambulance}">15</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Pompiers</p><p class="font-headline-sm text-primary font-bold" th:text="${info.fire}">18</p></div>
+                    </div>
+                    <p th:if="${info != null}" class="font-body-sm text-on-surface-variant" th:text="${info.notes}">Informations complémentaires</p>
+                    <p th:if="${info == null}" class="font-body-sm text-on-surface-variant">
+                      Les numéros de ce pays ne sont pas encore renseignés dans le référentiel local. Vérifiez les coordonnées officielles avant votre départ.
+                    </p>
+                  </div>
                 </article>
-                <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
-                  <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
-                    emergency
-                  </span>
-                  <h3 class="font-label-lg text-label-lg text-primary font-bold">
-                    Secours médicaux et pompiers
-                  </h3>
-                  <p class="font-body-sm text-body-sm text-on-surface-variant">
-                    Enregistrez les numéros locaux dans votre téléphone avant de partir.
-                  </p>
-                </article>
+              </div>
+              <div th:if="${selectedTrip == null or #lists.isEmpty(selectedTrip.countries)}"
+                   class="p-space-lg rounded-xl bg-surface-container-lowest">
+                Sélectionnez ou créez un voyage avec au moins une destination pour afficher ses numéros d'urgence.
               </div>
             </section>
             <section class="xl:col-span-5 flex flex-col gap-space-lg" aria-labelledby="consular-title">
@@ -159,7 +161,7 @@
                   Contacts d’urgence
                 </h3>
                 <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
-                  Gardez les coordonnées de vos proches et de votre assurance à portée de main.
+                  Enregistrez dans votre téléphone un proche à contacter, votre assurance voyage et les coordonnées de votre hébergement.
                 </p>
               </article>
             </div>

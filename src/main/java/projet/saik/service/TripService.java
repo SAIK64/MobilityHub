@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 import projet.saik.model.Budget;
 import projet.saik.model.Country;
+import projet.saik.model.CountryIso;
 import projet.saik.model.Trip;
 import projet.saik.model.User;
 import projet.saik.repository.CountryRepository;
@@ -121,7 +122,7 @@ public class TripService {
         trip.getCountries().clear();
         requestedCountries.stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        country -> country.iso().trim().toUpperCase(),
+                        country -> normalizeIso(country.iso()),
                         country -> country,
                         (first, ignored) -> first,
                         LinkedHashMap::new))
@@ -141,10 +142,7 @@ public class TripService {
     @Transactional
     public TripResponse addCountry(Long tripId, CountryRequest request) {
         Trip trip = access.requireOwnedTrip(tripId);
-        String iso = request.iso().trim().toUpperCase();
-        // TO DO 
-        // mettre le iso en enum pour éviter les erreurs de saisie
-        //
+        String iso = normalizeIso(request.iso());
         Country country = getOrCreateCountry(request, iso);
         boolean alreadyAssociated = trip.getCountries().stream()
                 .anyMatch(existing -> existing.getCodeIso().equalsIgnoreCase(iso));
@@ -163,9 +161,17 @@ public class TripService {
         return toTripResponse(tripRepository.save(trip));
     }
 
+    private String normalizeIso(String requestedIso) {
+        return CountryIso.fromCode(requestedIso)
+                .map(CountryIso::getCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Code ISO pays invalide ou non pris en charge : " + requestedIso));
+    }
+
     private Country getOrCreateCountry(CountryRequest request, String iso) {
+        CountryIso countryIso = CountryIso.fromCode(iso).orElseThrow();
         return countryRepository.findByCodeIso(iso).orElseGet(() -> countryRepository.save(
-                new Country(request.country().trim(), iso)));
+                new Country(countryIso.getDisplayName(), iso)));
     }
 
     // Convertit l’entité de voyage en réponse JSON sans exposer l’entité JPA directement.

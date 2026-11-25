@@ -17,6 +17,7 @@ function initializeTripCountryRows() {
   document.getElementById('addTripCountryBtn')?.addEventListener('click', () => {
     const row = container.querySelector('[data-trip-country-row]').cloneNode(true);
     row.querySelectorAll('input').forEach((input) => { input.value = ''; });
+    row.querySelectorAll('select').forEach((select) => { select.value = ''; });
     container.append(row);
     updateRemoveButtons();
     row.querySelector('input').focus();
@@ -26,6 +27,19 @@ function initializeTripCountryRows() {
     if (remove && container.querySelectorAll('[data-trip-country-row]').length > 1) {
       remove.closest('[data-trip-country-row]').remove();
       updateRemoveButtons();
+    }
+  });
+  container.addEventListener('change', (event) => {
+    const select = event.target.closest('[data-country-iso]');
+    if (!select) return;
+    const name = select.selectedOptions[0]?.textContent?.trim() || '';
+    const hiddenName = select.closest('[data-trip-country-row]')?.querySelector('[data-country-name]');
+    if (hiddenName) hiddenName.value = name;
+  });
+  container.querySelectorAll('[data-country-iso]').forEach((select) => {
+    const hiddenName = select.closest('[data-trip-country-row]')?.querySelector('[data-country-name]');
+    if (hiddenName && !hiddenName.value && select.value) {
+      hiddenName.value = select.selectedOptions[0]?.textContent?.trim() || '';
     }
   });
   updateRemoveButtons();

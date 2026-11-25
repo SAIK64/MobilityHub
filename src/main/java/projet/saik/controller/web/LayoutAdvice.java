@@ -12,6 +12,11 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import projet.saik.service.TripService;
+import projet.saik.model.CountryIso;
+import projet.saik.security.EmergencyDirectory;
+import projet.saik.security.EmergencyInfo;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import projet.saik.web.TravelDataDtos.TripResponse;
 import projet.saik.web.TripView;
 
@@ -45,5 +50,13 @@ public class LayoutAdvice {
         TripResponse selected = resolver.resolve(trips, session);
         model.addAttribute("trips", TripView.of(trips, today));
         model.addAttribute("selectedTrip", selected == null ? null : TripView.of(selected, today));
+        model.addAttribute("countryCatalog", List.of(CountryIso.values()));
+        Map<String, EmergencyInfo> emergencyByIso = new LinkedHashMap<>();
+        if (selected != null) {
+            selected.countries().forEach(country -> CountryIso.fromCode(country.iso())
+                    .map(EmergencyDirectory::find)
+                    .ifPresent(info -> emergencyByIso.put(country.iso(), info)));
+        }
+        model.addAttribute("emergencyByIso", emergencyByIso);
     }
 }

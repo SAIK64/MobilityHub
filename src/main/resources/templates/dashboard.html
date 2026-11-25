@@ -207,19 +207,19 @@
                   </div>
                   <div class="flex flex-col gap-space-sm" id="tripCountriesContainer">
                     <!-- Une ligne par pays (édition) ou une ligne vide (création). -->
-                    <div class="grid grid-cols-[1fr_6rem_auto] items-end gap-space-sm" data-trip-country-row=""
+                    <div class="grid grid-cols-[1fr_auto] items-end gap-space-sm" data-trip-country-row=""
                          th:each="country : ${editTrip != null ? editTrip.countries : emptyCountryRow}">
                       <div class="flex flex-col gap-1">
                         <label class="text-body-sm text-on-surface-variant">Pays</label>
-                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
-                               name="countryName" placeholder="Ex: Allemagne" required type="text"
+                        <input name="countryName" type="hidden" data-country-name
                                th:value="${country != null} ? ${country.country} : ''"/>
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label class="text-body-sm text-on-surface-variant">Code ISO</label>
-                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface uppercase placeholder:text-on-surface-variant focus:outline-none"
-                               name="countryIso" maxlength="2" pattern="[A-Za-z]{2}" placeholder="DE" required type="text"
-                               th:value="${country != null} ? ${country.iso} : ''"/>
+                        <select class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface"
+                                name="countryIso" data-country-iso required>
+                          <option value="">Choisir un pays</option>
+                          <option th:each="item : ${countryCatalog}" th:value="${item.code}"
+                                  th:text="${item.displayName}"
+                                  th:selected="${country != null and country.iso == item.code}"></option>
+                        </select>
                       </div>
                       <button aria-label="Retirer ce pays" class="rounded-lg px-2 py-2 text-error hover:bg-surface-container" data-remove-trip-country="" type="button" data-app-handled="true">
                         Retirer
