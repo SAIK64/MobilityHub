@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import projet.saik.service.TravelDataService;
+import projet.saik.service.BudgetService;
 import projet.saik.web.BudgetView;
 import projet.saik.web.TravelDataDtos.BudgetRequest;
 import projet.saik.web.TravelDataDtos.BudgetResponse;
@@ -27,11 +27,11 @@ import projet.saik.web.TripView;
 // Budget & dépenses du voyage sélectionné : Trip -1-1-> Budget -1-N-> Expense.
 public class BudgetController {
 
-    private final TravelDataService service;
+    private final BudgetService budgetService;
     private final WebActions actions;
 
-    public BudgetController(TravelDataService service, WebActions actions) {
-        this.service = service;
+    public BudgetController(BudgetService budgetService, WebActions actions) {
+        this.budgetService = budgetService;
         this.actions = actions;
     }
 
@@ -44,8 +44,8 @@ public class BudgetController {
         List<ExpenseResponse> expenses = List.of();
         BudgetResponse budget = new BudgetResponse(0.0, 0.0, Map.of());
         if (selected != null) {
-            expenses = service.getExpenses(selected.getId());
-            budget = service.getBudget(selected.getId());
+            expenses = budgetService.getExpenses(selected.getId());
+            budget = budgetService.getBudget(selected.getId());
         }
 
         // Filtres du registre (catégorie, origine automatique / manuelle, texte).
@@ -80,7 +80,7 @@ public class BudgetController {
             @RequestParam(required = false) String paymentMethod,
             @RequestParam(required = false) String receiptName,
             RedirectAttributes flash) {
-        actions.run(flash, "Dépense enregistrée.", () -> service.createExpense(tripId, actions.validate(
+        actions.run(flash, "Dépense enregistrée.", () -> budgetService.createExpense(tripId, actions.validate(
                 new ExpenseRequest(description, amount, date, category,
                         blankToDefault(paymentMethod, "Non précisé"), receiptName, false))));
         return "redirect:/budget";
@@ -88,7 +88,7 @@ public class BudgetController {
 
     @PostMapping("/budget/expenses/{expenseId}/delete")
     public String deleteExpense(@PathVariable Long expenseId, RedirectAttributes flash) {
-        actions.run(flash, "Dépense supprimée.", () -> service.deleteExpense(expenseId));
+        actions.run(flash, "Dépense supprimée.", () -> budgetService.deleteExpense(expenseId));
         return "redirect:/budget";
     }
 
@@ -99,7 +99,7 @@ public class BudgetController {
         actions.run(flash, "Budgets par catégorie enregistrés.", () -> {
             Map<String, Double> limits = new LinkedHashMap<>();
             // Garde les budgets des catégories qui ne sont pas dans le formulaire.
-            service.getBudget(tripId).categoryBudgets().forEach((key, value) -> {
+            budgetService.getBudget(tripId).categoryBudgets().forEach((key, value) -> {
                 if (BudgetView.CATEGORIES.stream().noneMatch(c -> c.key().equals(key))) limits.put(key, value);
             });
             for (BudgetView.Category c : BudgetView.CATEGORIES) {
@@ -112,7 +112,7 @@ public class BudgetController {
                     }
                 }
             }
-            service.updateBudget(tripId, new BudgetRequest(null, limits));
+            budgetService.updateBudget(tripId, new BudgetRequest(null, limits));
         });
         return "redirect:/budget";
     }

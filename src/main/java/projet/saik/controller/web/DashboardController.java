@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
-import projet.saik.service.TravelDataService;
+import projet.saik.service.TripService;
 import projet.saik.web.TravelDataDtos.CountryRequest;
 import projet.saik.web.TravelDataDtos.TripRequest;
 import projet.saik.web.TripView;
@@ -27,11 +27,11 @@ import projet.saik.web.TripView;
 // et association / dissociation des pays d'un voyage (relation N-N Trip <-> Country).
 public class DashboardController {
 
-    private final TravelDataService service;
+    private final TripService tripService;
     private final WebActions actions;
 
-    public DashboardController(TravelDataService service, WebActions actions) {
-        this.service = service;
+    public DashboardController(TripService tripService, WebActions actions) {
+        this.tripService = tripService;
         this.actions = actions;
     }
 
@@ -78,7 +78,7 @@ public class DashboardController {
         actions.run(flash, "Voyage enregistré.", () -> {
             TripRequest request = actions.validate(
                     new TripRequest(name, null, null, toCountries(countryNames, countryIsos), start, end));
-            Long id = service.createTrip(request).id();
+            Long id = tripService.createTrip(request).id();
             // Le nouveau voyage devient le voyage sélectionné.
             session.setAttribute(SelectedTripResolver.SESSION_KEY, id);
         });
@@ -92,14 +92,14 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
             RedirectAttributes flash) {
-        boolean ok = actions.run(flash, "Voyage mis à jour.", () -> service.updateTrip(tripId, actions.validate(
+        boolean ok = actions.run(flash, "Voyage mis à jour.", () -> tripService.updateTrip(tripId, actions.validate(
                 new TripRequest(name, null, null, toCountries(countryNames, countryIsos), start, end))));
         return ok ? "redirect:/dashboard" : "redirect:/dashboard?edit=" + tripId;
     }
 
     @PostMapping("/dashboard/trips/{tripId}/delete")
     public String deleteTrip(@PathVariable Long tripId, RedirectAttributes flash) {
-        actions.run(flash, "Voyage supprimé.", () -> service.deleteTrip(tripId));
+        actions.run(flash, "Voyage supprimé.", () -> tripService.deleteTrip(tripId));
         return "redirect:/dashboard";
     }
 
@@ -107,7 +107,7 @@ public class DashboardController {
     @PostMapping("/dashboard/trips/{tripId}/countries")
     public String addCountry(@PathVariable Long tripId, @RequestParam String country, @RequestParam String iso,
             RedirectAttributes flash) {
-        actions.run(flash, country.trim() + " ajouté au voyage.", () -> service.addCountry(tripId,
+        actions.run(flash, country.trim() + " ajouté au voyage.", () -> tripService.addCountry(tripId,
                 actions.validate(new CountryRequest(country.trim(), iso.trim().toUpperCase()))));
         return "redirect:/dashboard";
     }
@@ -115,7 +115,7 @@ public class DashboardController {
     // Dissocie un pays d'un voyage (N-N).
     @PostMapping("/dashboard/trips/{tripId}/countries/{iso}/delete")
     public String removeCountry(@PathVariable Long tripId, @PathVariable String iso, RedirectAttributes flash) {
-        actions.run(flash, "Pays retiré du voyage.", () -> service.removeCountry(tripId, iso));
+        actions.run(flash, "Pays retiré du voyage.", () -> tripService.removeCountry(tripId, iso));
         return "redirect:/dashboard";
     }
 

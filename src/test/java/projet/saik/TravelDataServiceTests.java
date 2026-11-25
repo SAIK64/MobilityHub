@@ -19,7 +19,10 @@ import projet.saik.repository.BudgetRepository;
 import projet.saik.repository.ExpenseRepository;
 import projet.saik.repository.TransportTicketRepository;
 import projet.saik.repository.TripRepository;
-import projet.saik.service.TravelDataService;
+import projet.saik.service.BudgetService;
+import projet.saik.service.ProfileService;
+import projet.saik.service.TicketService;
+import projet.saik.service.TripService;
 import projet.saik.service.AccountService;
 import projet.saik.web.TravelDataDtos.BudgetRequest;
 import projet.saik.web.TravelDataDtos.CountryRequest;
@@ -39,7 +42,16 @@ import projet.saik.web.TravelDataDtos.TripRequest;
 class TravelDataServiceTests {
 
     @Autowired
-    private TravelDataService travelDataService;
+    private TripService tripService;
+
+    @Autowired
+    private TicketService ticketService;
+
+    @Autowired
+    private BudgetService budgetService;
+
+    @Autowired
+    private ProfileService profileService;
 
     @Autowired
     private TripRepository tripRepository;
@@ -73,20 +85,20 @@ class TravelDataServiceTests {
     @Test
     // Vérifie l’enregistrement et la lecture des budgets par catégorie.
     void storesCategoryBudgets() {
-        var trip = travelDataService.createTrip(new TripRequest(
+        var trip = tripService.createTrip(new TripRequest(
                 "Budget test", "France", "FR",
                 LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
-        travelDataService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Transport", 500.0, "Tech", 40.0)));
-        var budget = travelDataService.getBudget(trip.id());
+        budgetService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Transport", 500.0, "Tech", 40.0)));
+        var budget = budgetService.getBudget(trip.id());
         assertEquals(500.0, budget.categoryBudgets().get("Transport"));
         assertEquals(2, budget.categoryBudgets().size());
         org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
-                () -> travelDataService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Tech", -1.0))));
+                () -> budgetService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Tech", -1.0))));
     }
 
     @Test
     void managesMultipleCountriesForATrip() {
-        var trip = travelDataService.createTrip(new TripRequest(
+        var trip = tripService.createTrip(new TripRequest(
                 "Circuit européen", null, null,
                 java.util.List.of(new CountryRequest("France", "FR"), new CountryRequest("Espagne", "ES")),
                 LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
@@ -94,10 +106,10 @@ class TravelDataServiceTests {
         assertEquals(java.util.List.of("ES", "FR"),
                 trip.countries().stream().map(country -> country.iso()).toList());
 
-        var withItaly = travelDataService.addCountry(trip.id(), new CountryRequest("Italie", "IT"));
+        var withItaly = tripService.addCountry(trip.id(), new CountryRequest("Italie", "IT"));
         assertEquals(3, withItaly.countries().size());
 
-        var withoutSpain = travelDataService.removeCountry(trip.id(), "es");
+        var withoutSpain = tripService.removeCountry(trip.id(), "es");
         assertEquals(java.util.List.of("FR", "IT"),
                 withoutSpain.countries().stream().map(country -> country.iso()).toList());
     }
@@ -106,7 +118,7 @@ class TravelDataServiceTests {
     // Vérifie la création du voyage, du billet et des dépenses, puis leur suppression liée.
     void persistsTripTicketAndExpensesAndRemovesGeneratedTicketExpense() {
         // Crée un séjour et vérifie que la base lui a attribué un identifiant.
-        var trip = travelDataService.createTrip(new TripRequest(
+        var trip = tripService.createTrip(new TripRequest(
                 "Séjour test", "France", "FR",
                 LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
         assertNotNull(trip.id());
@@ -114,7 +126,7 @@ class TravelDataServiceTests {
         assertEquals(1, tripRepository.count());
 
         // Ajoute un billet de train au voyage et vérifie la dépense de transport générée.
-        var ticket = travelDataService.createTicket(trip.id(), new TicketRequest(
+        var ticket = ticketService.createTicket(trip.id(), new TicketRequest(
                 "Train", "TGV test", "Paris", "Lyon",
                 LocalDateTime.of(2030, 4, 10, 9, 0), null, 49.5, "TEST-1", null));
         assertNotNull(ticket.id());
@@ -122,14 +134,14 @@ class TravelDataServiceTests {
         assertEquals(1, expenseRepository.count());
 
         // Ajoute ensuite une dépense manuelle et contrôle le total du budget.
-        travelDataService.createExpense(trip.id(), new ExpenseRequest(
+        budgetService.createExpense(trip.id(), new ExpenseRequest(
                 "Repas test", 12.5, LocalDate.of(2030, 4, 11),
                 "Restauration", "Carte", null, false));
         assertEquals(2, expenseRepository.count());
         assertEquals(62.0, budgetRepository.findByTripId(trip.id()).orElseThrow().getActualTotal(), 0.001);
 
         // Supprime le billet et vérifie que seule la dépense manuelle subsiste.
-        travelDataService.deleteTicket(ticket.id());
+        ticketService.deleteTicket(ticket.id());
         assertEquals(0, ticketRepository.count());
         assertEquals(1, expenseRepository.count());
     }
@@ -137,7 +149,7 @@ class TravelDataServiceTests {
     @Test
     // Vérifie la conservation des détails d’un vol et le calcul tenant compte des fuseaux horaires.
     void persistsFlightDetailsAndCalculatesElapsedDuration() {
-        var trip = travelDataService.createTrip(new TripRequest(
+        var trip = tripService.createTrip(new TripRequest(
                 "Vol test", "France", "FR",
                 LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
         var details = new projet.saik.web.TravelDataDtos.FlightDetailsRequest(
@@ -149,7 +161,7 @@ class TravelDataServiceTests {
                 "1 bagage supplémentaire", "Végétarien", "Embarquement prioritaire",
                 "0571234567890", "Confirmé / OK", 60, -300);
 
-        var ticket = travelDataService.createTicket(trip.id(), new TicketRequest(
+        var ticket = ticketService.createTicket(trip.id(), new TicketRequest(
                 "Avion", "Vol AT123", "", "",
                 LocalDateTime.of(2030, 4, 10, 10, 0),
                 LocalDateTime.of(2030, 4, 10, 12, 30),
@@ -171,13 +183,13 @@ class TravelDataServiceTests {
     // Vérifie qu’un changement d’adresse e-mail est conservé pendant toute la session de test.
     void profileUpdateRemainsAvailableAfterEmailChange() {
         // Remplace les informations du profil par une nouvelle adresse.
-        var updated = travelDataService.updateProfile(new ProfileRequest(
+        var updated = profileService.updateProfile(new ProfileRequest(
                 "Étudiant", "Démo", "", "Française",
                 "nouveau@example.test", "", "", "motdepasse-test"));
 
         // Vérifie la réponse de mise à jour et les lectures suivantes du profil.
         assertEquals("nouveau@example.test", updated.email());
-        assertEquals("Étudiant", travelDataService.getProfile().firstName());
-        assertEquals("nouveau@example.test", travelDataService.getProfile().email());
+        assertEquals("Étudiant", profileService.getProfile().firstName());
+        assertEquals("nouveau@example.test", profileService.getProfile().email());
     }
 }

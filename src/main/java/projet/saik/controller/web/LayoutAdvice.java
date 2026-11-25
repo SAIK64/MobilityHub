@@ -11,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import projet.saik.service.TravelDataService;
+import projet.saik.service.TripService;
 import projet.saik.web.TravelDataDtos.TripResponse;
 import projet.saik.web.TripView;
 
@@ -20,11 +20,11 @@ import projet.saik.web.TripView;
 @ControllerAdvice(basePackages = "projet.saik.controller.web")
 public class LayoutAdvice {
 
-    private final TravelDataService service;
+    private final TripService tripService;
     private final SelectedTripResolver resolver;
 
-    public LayoutAdvice(TravelDataService service, SelectedTripResolver resolver) {
-        this.service = service;
+    public LayoutAdvice(TripService tripService, SelectedTripResolver resolver) {
+        this.tripService = tripService;
         this.resolver = resolver;
     }
 
@@ -36,7 +36,7 @@ public class LayoutAdvice {
         }
         List<TripResponse> trips;
         try {
-            trips = service.getTrips();
+            trips = tripService.getTrips();
         } catch (ResponseStatusException ex) {
             // Compte introuvable (ex. utilisateur de test) : la page s'affiche sans voyage.
             trips = List.of();

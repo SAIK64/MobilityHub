@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import projet.saik.service.TravelDataService;
+import projet.saik.service.ProfileService;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
 import projet.saik.web.TravelDataDtos.ProfileResponse;
 
@@ -20,11 +20,11 @@ import projet.saik.web.TravelDataDtos.ProfileResponse;
 // Profil de la personne connectée : affichage du formulaire pré-rempli et enregistrement.
 public class ProfilController {
 
-    private final TravelDataService service;
+    private final ProfileService profileService;
     private final WebActions actions;
 
-    public ProfilController(TravelDataService service, WebActions actions) {
-        this.service = service;
+    public ProfilController(ProfileService profileService, WebActions actions) {
+        this.profileService = profileService;
         this.actions = actions;
     }
 
@@ -32,7 +32,7 @@ public class ProfilController {
     public String profil(Model model) {
         ProfileResponse profile;
         try {
-            profile = service.getProfile();
+            profile = profileService.getProfile();
         } catch (ResponseStatusException ex) {
             profile = new ProfileResponse("", "", "", "", "", "", "");
         }
@@ -47,7 +47,7 @@ public class ProfilController {
             @RequestParam String email, @RequestParam(required = false) String phone,
             @RequestParam(required = false) String passport, @RequestParam(required = false) String currentPassword,
             RedirectAttributes flash) {
-        actions.run(flash, "Profil enregistré.", () -> service.updateProfile(actions.validate(new ProfileRequest(
+        actions.run(flash, "Profil enregistré.", () -> profileService.updateProfile(actions.validate(new ProfileRequest(
                 firstName, lastName, trim(birthDate), trim(nationality), email, trim(phone), trim(passport),
                 currentPassword == null || currentPassword.isEmpty() ? null : currentPassword))));
         return "redirect:/profil";

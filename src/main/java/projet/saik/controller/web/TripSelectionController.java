@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpSession;
-import projet.saik.service.TravelDataService;
+import projet.saik.service.TripService;
 
 @Controller
 // Change le voyage sélectionné (mémorisé dans la session HTTP) depuis n'importe quelle page.
@@ -17,10 +17,10 @@ public class TripSelectionController {
     // Pages vers lesquelles on peut revenir après la sélection (évite les redirections arbitraires).
     private static final Set<String> RETURN_PAGES = Set.of("/dashboard", "/transports", "/budget", "/securite", "/profil");
 
-    private final TravelDataService service;
+    private final TripService tripService;
 
-    public TripSelectionController(TravelDataService service) {
-        this.service = service;
+    public TripSelectionController(TripService tripService) {
+        this.tripService = tripService;
     }
 
     @PostMapping("/trips/select")
@@ -28,7 +28,7 @@ public class TripSelectionController {
             @RequestParam(defaultValue = "/dashboard") String returnTo,
             HttpSession session, RedirectAttributes flash) {
         // On ne mémorise que les voyages appartenant à la personne connectée.
-        service.getTrips().stream()
+        tripService.getTrips().stream()
                 .filter(trip -> trip.id().equals(tripId))
                 .findFirst()
                 .ifPresentOrElse(trip -> {

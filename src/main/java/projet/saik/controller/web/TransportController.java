@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import projet.saik.service.TravelDataService;
+import projet.saik.service.TicketService;
 import projet.saik.web.TravelDataDtos.TicketResponse;
 import projet.saik.web.TripView;
 
@@ -17,18 +17,18 @@ import projet.saik.web.TripView;
 // Transports & billets : affiche les titres du voyage sélectionné (relation 1-N Trip -> TransportTicket).
 public class TransportController {
 
-    private final TravelDataService service;
+    private final TicketService ticketService;
     private final WebActions actions;
 
-    public TransportController(TravelDataService service, WebActions actions) {
-        this.service = service;
+    public TransportController(TicketService ticketService, WebActions actions) {
+        this.ticketService = ticketService;
         this.actions = actions;
     }
 
     @GetMapping("/transports")
     public String transports(Model model) {
         TripView selected = (TripView) model.getAttribute("selectedTrip");
-        List<TicketResponse> tickets = selected == null ? List.of() : service.getTickets(selected.getId());
+        List<TicketResponse> tickets = selected == null ? List.of() : ticketService.getTickets(selected.getId());
         model.addAttribute("tickets", tickets);
         model.addAttribute("ticketTotal", tickets.stream().mapToDouble(t -> t.price() == null ? 0 : t.price()).sum());
         return "transports";
@@ -37,7 +37,7 @@ public class TransportController {
     // Supprime un titre (et la dépense automatique qu'il avait créée dans le budget).
     @PostMapping("/transports/tickets/{ticketId}/delete")
     public String deleteTicket(@PathVariable Long ticketId, RedirectAttributes flash) {
-        actions.run(flash, "Titre supprimé.", () -> service.deleteTicket(ticketId));
+        actions.run(flash, "Titre supprimé.", () -> ticketService.deleteTicket(ticketId));
         return "redirect:/transports";
     }
 }
