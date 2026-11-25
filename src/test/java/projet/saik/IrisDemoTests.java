@@ -56,8 +56,8 @@ class IrisDemoTests {
         assertEquals(1, savedTrips.size());
         var trip = savedTrips.get(0);
         assertEquals("Chine — Découverte & Aventure", trip.getName());
-        assertEquals(LocalDate.of(2026, 3, 1), trip.getStartDate());
-        assertEquals(LocalDate.of(2026, 3, 21), trip.getEndDate());
+        assertEquals(LocalDate.of(2027, 3, 1), trip.getStartDate());
+        assertEquals(LocalDate.of(2027, 3, 21), trip.getEndDate());
         assertTrue(budgets.findByTripId(trip.getId()).isPresent());
 
         // Connecte le compte de démonstration avec le formulaire web.
@@ -72,8 +72,8 @@ class IrisDemoTests {
         mvc.perform(get("/api/trips").session(session)).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].country").value("Chine"))
                 .andExpect(jsonPath("$[0].iso").value("CN"))
-                .andExpect(jsonPath("$[0].start").value("2026-03-01"))
-                .andExpect(jsonPath("$[0].end").value("2026-03-21"));
+                .andExpect(jsonPath("$[0].start").value("2027-03-01"))
+                .andExpect(jsonPath("$[0].end").value("2027-03-21"));
 
         // Modifie le compte puis relance l’initialiseur pour vérifier qu’il ne l’écrase pas.
         iris.setFirstName("Iris modifié");

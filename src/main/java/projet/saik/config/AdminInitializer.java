@@ -36,7 +36,7 @@ public class AdminInitializer {
                 var adminRole = roles.findByName(AdminService.ADMIN_ROLE)
                         .orElseThrow(() -> new IllegalStateException("Le rôle administrateur est absent."));
                 var existing = users.findByEmailIgnoreCase(email.trim());
-                var admin = existing.orElseGet(() -> accounts.register(email, password));
+                var admin = existing.orElseGet(() -> accounts.register(email, password, "Administrateur", "SAIK"));
                 if (admin.getRoles().stream().noneMatch(role -> AdminService.ADMIN_ROLE.equals(role.getName()))) {
                     admin.getRoles().add(adminRole);
                     users.save(admin);

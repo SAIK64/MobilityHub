@@ -40,7 +40,8 @@ application-local.properties
 application-dev.properties
 
 ### BDD H2 (fichiers locaux non versionnés) ###
-data/*.mv.db
+data/*
+!data/.gitkeep
 *.lock.db
 *.trace.db
 

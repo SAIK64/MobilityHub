@@ -200,3 +200,30 @@ Les réservations auprès de partenaires ne sont pas connectées ;
 les pièces jointes ne conservent que leur nom de fichier et ne sont pas
 téléversées. Les actions de sécurité et de compte qui nécessitent un service
 externe restent explicitement indiquées comme non connectées.
+
+
+### Administration et sécurité
+
+- **Premier administrateur** : définir `SAIK_ADMIN_EMAIL` et `SAIK_ADMIN_PASSWORD`
+  (8 caractères minimum, 72 octets maximum) avant le démarrage. Le compte est créé
+  avec le rôle `ROLE_ADMIN` (prénom « Administrateur », nom « SAIK ») ; s'il existe
+  déjà, le rôle lui est ajouté sans changer son mot de passe. Sans `SAIK_ADMIN_EMAIL`,
+  aucun administrateur n'est créé. Retirer `SAIK_ADMIN_PASSWORD` de l'environnement
+  une fois le compte créé.
+- **Routes d'administration** (session web ou jeton `Bearer`, rôle `ROLE_ADMIN`) :
+  `GET /api/admin/users` liste les comptes (sans mot de passe) ;
+  `DELETE /api/admin/users/{id}` supprime un compte avec ses voyages et exige la
+  permission `USER_DELETE`. Un administrateur ne peut pas supprimer son propre compte.
+  Les routes sont protégées par l'URL (`SecurityConfig`) et par `@PreAuthorize`.
+- **Rôles et permissions** : les rôles (`ROLE_…`) et leurs permissions (`TRIP_READ`,
+  `TRIP_WRITE`, `USER_DELETE`) sont transmis comme autorisations Spring Security,
+  y compris dans les claims `roles` et `permissions` du jeton JWT.
+- **Blocage des connexions** : après `SAIK_MAX_LOGIN_ATTEMPTS` échecs (5 par défaut)
+  sur une adresse, la connexion est refusée pendant `SAIK_LOCKOUT_MINUTES` minutes
+  (15 par défaut), sur le formulaire web comme sur l'API. Le compteur est en mémoire
+  et repart de zéro au redémarrage.
+- **Changement d'adresse e-mail** : `PUT /api/profile` exige `currentPassword` lorsque
+  l'adresse change.
+- **Cookie de session** : `HttpOnly` et `SameSite=Lax`. Définir `SAIK_COOKIE_SECURE=true`
+  lorsque l'application est servie en HTTPS.
+- `SAIK_SHOW_SQL=true` réactive l'affichage des requêtes SQL en développement.
