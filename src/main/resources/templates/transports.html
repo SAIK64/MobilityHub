@@ -27,8 +27,10 @@
     </header>
     <aside th:replace="~{fragments/layout :: sidebar('transports')}">
     </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="pl-64">
-      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface"
+            th:attr="data-selected-trip-id=${selectedTrip != null} ? ${selectedTrip.id} : null">
         <div class="flex flex-col w-full">
           <!-- Top Academic Context Header & Action Band -->
           <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md mb-space-xl">
@@ -36,7 +38,8 @@
               <h1 class="font-headline-lg text-headline-lg text-primary font-bold">
                 Transports &amp; billets
               </h1>
-              <p class="text-on-surface-variant" data-selected-trip="">
+              <p class="text-on-surface-variant" data-selected-trip=""
+                 th:text="${selectedTrip != null} ? 'Voyage sélectionné : ' + ${selectedTrip.name} + ' · ' + ${#lists.size(tickets)} + ' titre(s) · ' + ${#numbers.formatDecimal(ticketTotal, 1, 'WHITESPACE', 2, 'COMMA')} + ' €' : 'Aucun voyage sélectionné. Créez un voyage depuis le tableau de bord.'">
                 Aucun voyage sélectionné.
               </p>
             </div>
@@ -92,7 +95,70 @@
             </div>
           </div>
           <!-- TAB 1 : MES BILLETS ENREGISTRÉS -->
+          <!-- Billets du voyage sélectionné, fournis par TransportController (Trip 1-N TransportTicket). -->
           <div class="flex flex-col gap-space-lg" id="view-mes-billets">
+            <p class="text-on-surface-variant" th:if="${#lists.isEmpty(tickets)}"
+               th:text="${selectedTrip != null} ? 'Aucun billet enregistré pour ce voyage.' : 'Créez un voyage pour enregistrer des billets.'">
+              Aucun billet enregistré pour ce voyage.
+            </p>
+            <article th:each="ticket : ${tickets}" th:attr="data-transport-type=${ticket.type}" data-app-handled="true"
+                     class="overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm md:grid md:grid-cols-[2fr_3fr]"
+                     th:with="flight=${ticket.flightDetails}">
+              <!-- Panneau de gauche : type et trajet. -->
+              <div class="flex flex-col justify-between gap-space-md bg-primary p-space-lg text-on-primary">
+                <div class="flex items-center gap-2 font-label-md text-label-md uppercase tracking-wider opacity-90">
+                  <span class="material-symbols-outlined text-[20px]"
+                        th:text="${ticket.type == 'Avion'} ? 'flight' : (${ticket.type == 'Train'} ? 'train' : (${ticket.type == 'Bus'} ? 'directions_bus' : (${ticket.type == 'Ferry'} ? 'directions_boat' : 'local_taxi')))">flight</span>
+                  <span th:text="${ticket.type}">Avion</span>
+                </div>
+                <div>
+                  <p class="text-4xl font-bold tracking-tight"
+                     th:text="${flight != null} ? ${flight.departureIata} + ' → ' + ${flight.arrivalIata} : '→'">CDG → JFK</p>
+                  <p class="mt-2 text-body-sm opacity-80"
+                     th:text="${flight != null} ? ${flight.departureAirport} + ' à ' + ${flight.arrivalAirport} : ${ticket.departure ?: ''} + ' → ' + ${ticket.arrival ?: ''}">trajet</p>
+                </div>
+                <p class="text-body-sm opacity-80" th:if="${flight != null and flight.airline != null}"
+                   th:text="${flight.airline} + (${flight.flightNumber} != null ? ' · ' + ${flight.flightNumber} : '')">Compagnie</p>
+              </div>
+              <!-- Panneau de droite : détails, prix, horaires, suppression. -->
+              <div class="flex flex-col gap-space-md p-space-lg">
+                <div class="flex items-start justify-between gap-space-md">
+                  <h3 class="font-headline-sm text-headline-sm text-primary font-bold"
+                      th:text="${ticket.description != null and !#strings.isEmpty(ticket.description)} ? ${ticket.description} : 'Transport ' + ${ticket.type}">Description</h3>
+                  <form th:action="@{/transports/tickets/{id}/delete(id=${ticket.id})}" method="post"
+                        data-confirm="Supprimer ce titre ? La dépense de transport associée sera aussi retirée du budget.">
+                    <button type="submit" class="rounded-lg px-space-sm py-1 font-label-md text-label-md text-error hover:bg-error-container">Supprimer</button>
+                  </form>
+                </div>
+                <p class="text-3xl font-bold text-primary"
+                   th:text="${#numbers.formatDecimal(ticket.price ?: 0, 1, 'WHITESPACE', 2, 'COMMA')} + ' €'">0,00 €</p>
+                <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-space-sm text-body-sm">
+                  <div>
+                    <p class="text-label-md uppercase text-on-surface-variant">Départ</p>
+                    <p class="text-xl font-bold text-primary" th:text="${#temporals.format(ticket.departureTime, 'HH:mm')}">08:00</p>
+                    <p class="text-on-surface-variant" th:text="${#temporals.format(ticket.departureTime, 'd MMMM yyyy', #locale)}">date</p>
+                  </div>
+                  <div class="text-center text-on-surface-variant">
+                    <p th:text="${flight != null and flight.durationMinutes != null} ? 'Durée : ' + ${flight.durationMinutes / 60} + 'h ' + ${#numbers.formatInteger(flight.durationMinutes % 60, 2)} + 'min' : ${ticket.type}">durée</p>
+                    <span class="material-symbols-outlined text-primary">arrow_right_alt</span>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-label-md uppercase text-on-surface-variant">Arrivée</p>
+                    <th:block th:if="${ticket.arrivalTime != null}">
+                      <p class="text-xl font-bold text-primary" th:text="${#temporals.format(ticket.arrivalTime, 'HH:mm')}">10:00</p>
+                      <p class="text-on-surface-variant" th:text="${#temporals.format(ticket.arrivalTime, 'd MMMM yyyy', #locale)}">date</p>
+                    </th:block>
+                    <p th:unless="${ticket.arrivalTime != null}" class="text-on-surface-variant">Non renseignée</p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-x-space-md gap-y-1 text-body-sm text-on-surface-variant">
+                  <span th:if="${ticket.reference != null and !#strings.isEmpty(ticket.reference)}" th:text="'Réf. ' + ${ticket.reference}">Réf.</span>
+                  <span th:if="${flight != null and flight.fareType != null}" th:text="'Tarif : ' + ${flight.fareType}">Tarif</span>
+                  <span th:if="${flight != null and flight.seatChoice != null}" th:text="'Siège : ' + ${flight.seatChoice}">Siège</span>
+                  <span th:if="${ticket.attachmentName != null and !#strings.isEmpty(ticket.attachmentName)}" th:text="${ticket.attachmentName} + ' (non téléversé)'">pièce jointe</span>
+                </div>
+              </div>
+            </article>
           </div>
           <!-- Recherche et offres de transport -->
           <div class="hidden flex-col gap-space-lg" id="view-offres-api">

@@ -1,137 +1,7 @@
 import { apiRequest, announce, announceRequestError, createTextElement, downloadFile } from './common.js';
 import { requireSelectedTripId } from './trips.js';
 
-// Ajoute à la page un titre de transport déjà enregistré.
-function appendTicket(ticket) {
-  // Cherche la zone des billets et évite d’insérer deux fois le même titre.
-  const container = document.getElementById('view-mes-billets');
-  if (!container || container.querySelector(`[data-saved-ticket="${ticket.id}"]`)) return;
-  container.querySelector('[data-empty-tickets]')?.remove();
-
-  // Crée une carte pour présenter le titre.
-  const card = document.createElement('article');
-  // Enregistre son identifiant et son type pour permettre les filtres ultérieurs.
-  card.dataset.savedTicket = ticket.id;
-  card.dataset.transportType = ticket.type;
-  card.dataset.appHandled = 'true';
-  // Applique l’apparence de carte définie par l’interface.
-  card.className = 'mt-space-md overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm md:grid md:grid-cols-[2fr_3fr]';
-  const flight = ticket.flightDetails;
-  const formatTime = (value) => value ? String(value).slice(11, 16) : '';
-  const formatDate = (value) => value ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${String(value).slice(0, 10)}T00:00:00`)) : '';
-  const hasArrival = Boolean(ticket.arrivalTime);
-  const dayShift = hasArrival ? Math.round((new Date(`${String(ticket.arrivalTime).slice(0, 10)}T00:00:00`) - new Date(`${String(ticket.departureTime).slice(0, 10)}T00:00:00`)) / 86400000) : 0;
-  const iconLabel = (icon, text) => {
-    const item = createTextElement('span', 'inline-flex items-center gap-1', '');
-    item.append(createTextElement('span', 'material-symbols-outlined text-[18px] text-primary', icon), document.createTextNode(text));
-    return item;
-  };
-
-  // Panneau sombre à gauche : type, trajet et classe/siège.
-  const side = document.createElement('div');
-  side.className = 'flex flex-col justify-between gap-space-lg p-space-lg text-white';
-  side.style.background = 'linear-gradient(160deg, #1f3d1c 0%, #0f2410 100%)';
-  const sideTop = document.createElement('div');
-  sideTop.className = 'flex items-center justify-between gap-2 text-label-md';
-  sideTop.append(
-    createTextElement('span', 'rounded-full bg-white/15 px-3 py-1', ticket.type),
-    createTextElement('span', 'opacity-80', flight?.flightNumber || ticket.reference || '')
-  );
-  const route = document.createElement('div');
-  route.append(createTextElement('p', 'text-4xl font-bold tracking-tight', flight ? `${flight.departureIata} → ${flight.arrivalIata}` : '→'));
-  route.append(createTextElement('p', 'mt-2 text-body-sm opacity-80', flight ? `${flight.departureAirport} à ${flight.arrivalAirport}` : `${ticket.departure || ''} → ${ticket.arrival || ''}`));
-  if (!flight) route.firstChild.textContent = `${ticket.departure || '—'} → ${ticket.arrival || '—'}`;
-  const sideBottom = document.createElement('div');
-  sideBottom.className = 'flex justify-between gap-2 border-t border-white/20 pt-3 text-label-md font-semibold';
-  sideBottom.append(
-    createTextElement('span', '', flight?.fareType || ''),
-    createTextElement('span', '', flight?.seatChoice ? `Siège ${flight.seatChoice}` : '')
-  );
-  side.append(sideTop, route, sideBottom);
-
-  // Zone principale à droite.
-  const main = document.createElement('div');
-  main.className = 'flex flex-col gap-space-sm p-space-lg';
-  const badges = document.createElement('div');
-  badges.className = 'flex flex-wrap items-center gap-2 text-label-md';
-  if (flight?.ticketStatus) badges.append(createTextElement('span', 'rounded-full bg-[#c9efc0] px-3 py-1 font-semibold text-[#1f3d1c]', `${flight.ticketStatus}${flight.airline ? ` • ${flight.airline}` : ''}`));
-  if (ticket.reference) badges.append(createTextElement('span', 'rounded-md bg-surface-container px-2 py-1 font-mono', `PNR : ${ticket.reference}`));
-  if (badges.childElementCount) main.append(badges);
-  if (flight?.eticketNumber) main.append(createTextElement('p', 'text-body-md text-on-surface-variant', `• E-Billet n° ${flight.eticketNumber}`));
-  const heading = document.createElement('div');
-  heading.className = 'flex items-start justify-between gap-space-md';
-  heading.append(createTextElement('h3', 'font-headline-sm text-headline-sm text-primary font-bold', ticket.description || `Transport ${ticket.type}`));
-  const remove = createTextElement('button', 'rounded-lg px-3 py-1 text-label-md text-error hover:bg-error-container', 'Supprimer');
-  remove.type = 'button';
-  remove.dataset.appHandled = 'true';
-  remove.addEventListener('click', async () => {
-    try {
-      // Demande au serveur de supprimer le billet avant de le retirer de l’écran.
-      await apiRequest(`/api/tickets/${ticket.id}`, { method: 'DELETE' });
-      // Retire la carte et confirme la suppression.
-      card.remove();
-      if (!container.querySelector('[data-saved-ticket]')) {
-        const empty = createTextElement('p', 'text-on-surface-variant', 'Aucun billet enregistré pour ce voyage.');
-        empty.dataset.emptyTickets = 'true';
-        container.append(empty);
-      }
-      announce('Titre supprimé de la base H2.');
-    } catch (error) {
-      // Préserve la carte à l’écran et explique l’échec si l’API refuse la suppression.
-      announceRequestError('Impossible de supprimer le titre', error);
-    }
-  });
-  heading.append(remove);
-  main.append(heading);
-  const subtitle = [
-    flight?.stopCount === 0 ? 'Vol direct' : flight?.stopCount ? `${flight.stopCount} escale(s)` : '',
-    flight?.cabinBaggage ? `Cabine : ${flight.cabinBaggage}${flight.cabinBaggageWeightKg ? ` ${flight.cabinBaggageWeightKg} kg` : ''}` : '',
-    flight?.checkedBaggage ? `Soute : ${flight.checkedBaggage}${flight.checkedBaggageWeightKg ? ` ${flight.checkedBaggageWeightKg} kg` : ''}` : ''
-  ].filter(Boolean).join(' • ');
-  if (subtitle) main.append(createTextElement('p', 'text-body-sm text-on-surface-variant', subtitle));
-  main.append(createTextElement('p', 'text-3xl font-bold text-primary', `${Number(ticket.price || 0).toFixed(2).replace('.', ',')} €`));
-
-  // Bloc horaires : départ, durée, arrivée.
-  const timeline = document.createElement('div');
-  timeline.className = 'grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-xl bg-[#eef2e3] p-space-md text-on-surface';
-  const departureBox = document.createElement('div');
-  departureBox.append(
-    createTextElement('p', 'text-label-md font-semibold uppercase text-on-surface-variant', 'Départ'),
-    createTextElement('p', 'text-2xl font-bold', formatTime(ticket.departureTime) || '—'),
-    createTextElement('p', 'text-body-sm text-on-surface-variant', [formatDate(ticket.departureTime), flight?.departureAirport].filter(Boolean).join(' • '))
-  );
-  const middle = document.createElement('div');
-  middle.className = 'flex flex-col items-center gap-1 text-label-md font-semibold';
-  const durationMinutes = flight?.durationMinutes;
-  middle.append(createTextElement('p', '', durationMinutes ? `Durée : ${Math.floor(durationMinutes / 60)}h ${String(durationMinutes % 60).padStart(2, '0')}min` : ticket.type));
-  middle.append(createTextElement('span', 'material-symbols-outlined text-primary', ticket.type === 'Train' ? 'train' : ticket.type === 'Avion' ? 'flight' : 'arrow_right_alt'));
-  if (flight) middle.append(createTextElement('p', '', flight.stopCount === 0 ? 'Direct sans escale' : `${flight.stopCount} escale(s)`));
-  const arrivalBox = document.createElement('div');
-  arrivalBox.className = 'text-right';
-  arrivalBox.append(
-    createTextElement('p', 'text-label-md font-semibold uppercase text-on-surface-variant', `Arrivée${dayShift > 0 ? ` (+${dayShift}J)` : ''}`),
-    createTextElement('p', 'text-2xl font-bold', formatTime(ticket.arrivalTime) || '—'),
-    createTextElement('p', 'text-body-sm text-on-surface-variant', [formatDate(ticket.arrivalTime), flight?.arrivalAirport].filter(Boolean).join(' • '))
-  );
-  timeline.append(departureBox, middle, arrivalBox);
-  main.append(timeline);
-
-  // Pastilles de services et conditions.
-  const perks = document.createElement('div');
-  perks.className = 'flex flex-wrap gap-x-4 gap-y-1 text-body-sm text-on-surface-variant';
-  if (flight?.specialMeal) perks.append(iconLabel('restaurant', flight.specialMeal));
-  if (flight?.optionalServices) perks.append(iconLabel('add_circle', flight.optionalServices));
-  if (flight?.modificationConditions) perks.append(iconLabel('sync_alt', flight.modificationConditions));
-  if (flight?.cancellationConditions) perks.append(iconLabel('event_busy', flight.cancellationConditions));
-  if (flight?.extraBaggage) perks.append(iconLabel('luggage', flight.extraBaggage));
-  if (flight?.stopDetails) perks.append(iconLabel('connecting_airports', flight.stopDetails));
-  if (ticket.attachmentName) perks.append(iconLabel('attach_file', `${ticket.attachmentName} (non téléversé)`));
-  if (perks.childElementCount) main.append(perks);
-
-  card.append(side, main);
-  // Ajoute la carte complète à la liste des billets.
-  container.append(card);
-}
+// Les billets enregistrés sont rendus par le serveur (TransportController + transports.html).
 
 const ticketFieldClass = 'w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-sm text-on-surface focus:outline-none focus:border-primary';
 
@@ -505,12 +375,10 @@ async function saveTicket(ticket, confirmation = 'Titre enregistré dans H2.') {
     method: 'POST',
     body: JSON.stringify(ticket)
   });
-  // Affiche le billet renvoyé par le serveur.
-  appendTicket(savedTicket);
-  // Bascule vers l’onglet des billets si cette fonction est disponible.
-  window.switchMainTab?.('mes-billets');
-  // Affiche le message de confirmation choisi par l’appelant.
+  // Affiche le message de confirmation puis recharge la page : la liste est reconstruite par le contrôleur.
   announce(confirmation);
+  window.setTimeout(() => window.location.reload(), 600);
+  return savedTicket;
 }
 
 window.handleFormSubmit = async (event) => {
@@ -608,4 +476,4 @@ window.bookApiOffer = async (title, price, type) => {
 };
 
 
-export { appendTicket, initializeTickets, initializeTransportControls };
+export { initializeTickets, initializeTransportControls };

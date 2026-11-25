@@ -27,6 +27,7 @@
     </header>
     <aside th:replace="~{fragments/layout :: sidebar('securite')}">
     </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="pl-64">
       <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
         <div class="flex flex-col w-full pb-space-2xl gap-space-xl">
@@ -41,8 +42,9 @@
                 <h1 class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
                   Kit de survie &amp; sécurité
                 </h1>
-                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5" data-selected-trip>
-                  Chargement du voyage sélectionné…
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5" data-selected-trip
+                   th:text="${selectedTrip != null} ? 'Voyage sélectionné : ' + ${selectedTrip.name} + ' · ' + ${selectedTrip.countryNames} : 'Aucun voyage sélectionné.'">
+                  Aucun voyage sélectionné.
                 </p>
                 <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
                   SAIK ne transmet pas votre position et ne contacte pas les services d’urgence.

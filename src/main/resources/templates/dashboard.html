@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Tableau de bord : présente le voyage actif, les résumés et la création d’un voyage. -->
+<!-- Tableau de bord : vue alimentée par DashboardController (voyages, voyage sélectionné, filtres). -->
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
   <head>
     <title>
@@ -13,7 +13,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
     <style>
 @layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }
-    
     </style>
     <script src="https://cdn.tailwindcss.com">
     </script>
@@ -28,6 +27,7 @@
     </header>
     <aside th:replace="~{fragments/layout :: sidebar('dashboard')}">
     </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="pl-64">
       <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
         <div class="flex flex-col w-full gap-space-xl">
@@ -35,39 +35,33 @@
             <h1 class="font-headline-lg text-headline-lg text-primary font-bold">
               Mes voyages
             </h1>
-            <p class="text-on-surface-variant" data-selected-trip="">
+            <p class="text-on-surface-variant" data-selected-trip=""
+               th:text="${selectedTrip != null} ? 'Voyage sélectionné : ' + ${selectedTrip.name} + ' · ' + ${selectedTrip.countryNames} : 'Aucun voyage sélectionné. Créez votre premier voyage.'">
               Aucun voyage sélectionné.
             </p>
-            <div class="relative" id="tripDropdownContainer">
-              <button class="px-space-md py-2 rounded-lg bg-surface-container" id="tripDropdownBtn" type="button">
-                <span id="selectedTripName">
-                  Choisir un voyage
-                </span>
-                <span id="tripDropdownChevron">
-                  ▾
-                </span>
-              </button>
-              <div class="hidden absolute z-10 bg-surface-container-lowest rounded-lg shadow-lg" id="tripDropdownMenu">
-              </div>
-            </div>
           </div>
+
+          <!-- Voyage sélectionné : statut, durée et compte à rebours calculés côté serveur (TripView). -->
           <section aria-labelledby="heroTripTitle" class="bg-surface-container-low rounded-2xl p-space-lg lg:p-space-xl">
             <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-space-lg">
               <div class="flex flex-col gap-space-sm">
                 <p class="font-label-md text-label-md text-secondary uppercase tracking-wider font-bold">
                   Voyage sélectionné
                 </p>
-                <h2 class="font-headline-sm text-headline-sm text-primary font-bold" id="heroTripTitle">
+                <h2 class="font-headline-sm text-headline-sm text-primary font-bold" id="heroTripTitle"
+                    th:text="${selectedTrip != null} ? ${selectedTrip.name} : 'Aucun voyage sélectionné'">
                   Aucun voyage sélectionné
                 </h2>
-                <p class="flex items-center gap-1.5 text-on-surface-variant" id="heroTripDates">
+                <p class="flex items-center gap-1.5 text-on-surface-variant" th:if="${selectedTrip != null}">
+                  <span class="material-symbols-outlined text-[16px] text-secondary" aria-hidden="true">calendar_today</span>
+                  <span th:text="'Du ' + ${#temporals.format(selectedTrip.start, 'd MMMM yyyy', #locale)} + ' au ' + ${#temporals.format(selectedTrip.end, 'd MMMM yyyy', #locale)}"></span>
                 </p>
               </div>
-              <div class="inline-flex items-center gap-2 self-start rounded-full bg-surface-container px-space-md py-2 font-label-md text-label-md font-semibold text-on-surface-variant" id="tripStatusPill">
-                <span aria-hidden="true" class="material-symbols-outlined text-[18px]" id="tripStatusIcon">
-                  info
-                </span>
-                <span id="heroTripStatusBadge">
+              <div class="inline-flex items-center gap-2 self-start rounded-full px-space-md py-2 font-label-md text-label-md font-semibold"
+                   th:classappend="${selectedTrip != null} ? ${selectedTrip.statusClasses} : 'bg-surface-container text-on-surface-variant'">
+                <span aria-hidden="true" class="material-symbols-outlined text-[18px]"
+                      th:text="${selectedTrip != null} ? ${selectedTrip.statusIcon} : 'info'">info</span>
+                <span th:text="${selectedTrip != null} ? ${selectedTrip.statusLabel} : 'Créez un voyage pour commencer.'">
                   Créez un voyage pour commencer.
                 </span>
               </div>
@@ -77,42 +71,30 @@
                 <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
                   Pays de destination
                 </p>
-                <p class="mt-1 font-headline-sm text-headline-sm font-bold text-primary" id="heroTripIso">
-                  —
-                </p>
+                <p class="mt-1 font-headline-sm text-headline-sm font-bold text-primary"
+                   th:text="${selectedTrip != null} ? ${selectedTrip.isoCodes} : '—'">—</p>
               </div>
               <div class="rounded-xl bg-surface-container-lowest p-space-md">
                 <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">
                   Durée prévue
                 </p>
-                <p class="mt-1 font-headline-sm text-headline-sm font-bold text-primary">
-                  <span id="tripDuration">
-                    —
-                  </span>
-                </p>
+                <p class="mt-1 font-headline-sm text-headline-sm font-bold text-primary"
+                   th:text="${selectedTrip != null} ? ${selectedTrip.durationDays} + (${selectedTrip.durationDays == 1} ? ' jour' : ' jours') : '—'">—</p>
               </div>
             </div>
-            <div class="mt-space-md rounded-xl bg-surface-container-lowest p-space-md lg:p-space-lg">
-              <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant" id="countdownLabel">
+            <div class="mt-space-md rounded-xl bg-surface-container-lowest p-space-md lg:p-space-lg" th:if="${selectedTrip != null}">
+              <p class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant" th:text="${selectedTrip.countdownLabel}">
                 Repère temporel
               </p>
               <div class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span class="font-headline-xl text-[2.5rem] text-primary font-extrabold tracking-tight leading-none" id="countdownDays">
-                  —
-                </span>
-                <span class="font-label-lg text-label-lg text-on-surface-variant font-semibold" id="countdownUnit">
-                  jours
-                </span>
+                <span class="font-headline-xl text-[2.5rem] text-primary font-extrabold tracking-tight leading-none" th:text="${selectedTrip.countdownValue}">—</span>
+                <span class="font-label-lg text-label-lg text-on-surface-variant font-semibold" th:text="${selectedTrip.countdownUnit}">jours</span>
               </div>
-              <p class="mt-2 text-on-surface-variant" id="countdownExplainer" aria-live="polite">
-              </p>
+              <p class="mt-2 text-on-surface-variant" th:text="${selectedTrip.countdownExplainer}"></p>
             </div>
           </section>
-          <!-- Top Welcome & Session Bar -->
-          <!-- Hero Section: Dynamic Countdown & Active Trip (UML getTimeRemaining) -->
-          <!-- 4 KPI Metrics Grid (User & Trip aggregates) -->
-          <!-- Main Split Layout: Timeline & Travel Roadmap vs Quick Access Document Wallet -->
-          <!-- Saved Trips Directory Section (UML Trip Collection) -->
+
+          <!-- Liste des voyages enregistrés (Trip 1-N, Trip N-N Country). -->
           <div class="bg-surface-container-lowest p-space-lg lg:p-space-xl rounded-xl shadow-sm flex flex-col gap-space-lg">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
               <div>
@@ -123,90 +105,149 @@
                   Voyages &amp; Escapades Enregistrés
                 </h3>
               </div>
-              <div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg">
-                <button class="px-space-md py-1.5 bg-surface-container-lowest font-label-md text-label-md text-primary font-semibold rounded shadow-sm">
-                  Tous (0)
-                </button>
-                <button class="px-space-md py-1.5 text-on-surface-variant hover:text-on-surface font-label-md text-label-md">
-                  Actif (0)
-                </button>
-                <button class="px-space-md py-1.5 text-on-surface-variant hover:text-on-surface font-label-md text-label-md">
-                  Futur (0)
-                </button>
-                <button class="px-space-md py-1.5 text-on-surface-variant hover:text-on-surface font-label-md text-label-md">
-                  Archivé (0)
-                </button>
-              </div>
+              <!-- Filtres par statut : simple lien GET traité par le contrôleur. -->
+              <nav class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg" aria-label="Filtrer les voyages">
+                <a th:each="entry : ${counts}"
+                   th:href="@{/dashboard(status=${entry.key})}"
+                   th:text="${entry.key} + ' (' + ${entry.value} + ')'"
+                   th:attr="aria-current=${entry.key == activeFilter} ? 'page' : null"
+                   th:classappend="${entry.key == activeFilter} ? 'bg-surface-container-lowest text-primary font-semibold rounded shadow-sm' : 'text-on-surface-variant hover:text-on-surface'"
+                   class="px-space-md py-1.5 font-label-md text-label-md">Tous (0)</a>
+              </nav>
             </div>
             <div class="flex flex-col gap-space-sm">
+              <p class="text-on-surface-variant" th:if="${#lists.isEmpty(filteredTrips)}"
+                 th:text="${#lists.isEmpty(trips)} ? 'Aucun voyage enregistré. Créez votre premier voyage.' : 'Aucun voyage dans cette catégorie.'">
+                Aucun voyage enregistré.
+              </p>
+              <div th:each="trip : ${filteredTrips}" th:attr="data-trip-status=${trip.status}"
+                   th:classappend="${selectedTrip != null and trip.id == selectedTrip.id} ? 'ring-2 ring-primary' : ''"
+                   class="bg-surface-container-lowest p-space-md rounded-xl flex flex-col gap-space-md shadow-sm border border-outline-variant/30">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+                  <div class="flex items-center gap-space-md">
+                    <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center font-bold text-headline-sm text-primary shrink-0" th:text="${trip.isoCodes}">FR</div>
+                    <div>
+                      <div>
+                        <h4 class="inline font-label-lg text-label-lg text-primary font-bold" th:text="${trip.name}">Voyage</h4>
+                        <span class="ml-2 rounded-full bg-surface-container-high px-2 py-0.5 text-[10px] font-semibold text-on-surface-variant" th:text="${trip.status}">Actif</span>
+                      </div>
+                      <p class="mt-0.5 text-body-sm text-on-surface-variant"
+                         th:text="${#temporals.format(trip.start, 'dd/MM/yyyy')} + ' - ' + ${#temporals.format(trip.end, 'dd/MM/yyyy')}">dates</p>
+                      <!-- Pays associés : chaque « × » dissocie le pays du voyage. -->
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <form th:each="country : ${trip.countries}" method="post"
+                              th:action="@{/dashboard/trips/{id}/countries/{iso}/delete(id=${trip.id},iso=${country.iso})}"
+                              class="inline-flex items-center gap-1 rounded-full bg-surface-container-low px-2 py-1 text-xs text-on-surface">
+                          <span th:text="${country.country} + ' (' + ${country.iso} + ')'">Pays</span>
+                          <button type="submit" class="rounded-full px-1 text-on-surface-variant hover:text-error"
+                                  th:attr="aria-label='Retirer ' + ${country.country} + ' du voyage'"
+                                  th:disabled="${#lists.size(trip.countries) == 1}">×</button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-space-sm">
+                    <form th:action="@{/trips/select}" method="post">
+                      <input type="hidden" name="tripId" th:value="${trip.id}"/>
+                      <input type="hidden" name="returnTo" value="/dashboard"/>
+                      <button type="submit" class="rounded-lg bg-surface-container-high px-space-md py-2 font-label-md text-label-md text-on-surface hover:bg-surface-container transition-colors">Sélectionner</button>
+                    </form>
+                    <a th:href="@{/dashboard(edit=${trip.id})}" class="rounded-lg bg-surface-container px-space-md py-2 font-label-md text-label-md text-primary hover:bg-surface-container-high transition-colors">Modifier</a>
+                    <form th:action="@{/dashboard/trips/{id}/delete(id=${trip.id})}" method="post" data-confirm="Supprimer ce voyage ? Les billets et dépenses associés seront également retirés.">
+                      <button type="submit" class="rounded-lg px-space-md py-2 font-label-md text-label-md text-error hover:bg-error-container transition-colors">Supprimer</button>
+                    </form>
+                  </div>
+                </div>
+                <!-- Associer un nouveau pays au voyage (N-N). -->
+                <form th:action="@{/dashboard/trips/{id}/countries(id=${trip.id})}" method="post" class="flex flex-wrap items-end gap-2">
+                  <label class="flex flex-col gap-1 text-xs text-on-surface-variant">
+                    Ajouter un pays
+                    <input type="text" name="country" required placeholder="Pays" class="rounded-lg bg-surface-container-low px-3 py-2 text-sm text-on-surface"/>
+                  </label>
+                  <input type="text" name="iso" required maxlength="2" pattern="[A-Za-z]{2}" placeholder="ISO" aria-label="Code ISO du pays"
+                         class="w-20 rounded-lg bg-surface-container-low px-3 py-2 text-sm uppercase text-on-surface"/>
+                  <button type="submit" class="rounded-lg bg-surface-container px-space-md py-2 font-label-md text-label-md text-primary">Ajouter</button>
+                </form>
+              </div>
             </div>
           </div>
-          <!-- Modal Component: Add Trip (UML Trip creation attributes: startDate, endDate, destinations, name) -->
-          <div class="fixed inset-0 z-50 bg-primary/40 backdrop-blur-sm hidden flex items-center justify-center p-space-md" id="addTripModal">
-            <div class="bg-surface-container-lowest w-full max-w-lg rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              <!-- Modal Header -->
+
+          <!-- Fenêtre de création / modification d'un voyage.
+               Ouverte d'office quand le contrôleur fournit « editTrip » ou quand l'URL contient action=new-trip. -->
+          <div class="fixed inset-0 z-50 bg-primary/40 backdrop-blur-sm flex items-center justify-center p-space-md" id="addTripModal"
+               th:classappend="${editTrip == null and param.action == null} ? 'hidden' : ''">
+            <div class="bg-surface-container-lowest w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
               <div class="bg-surface-container-low px-space-lg py-space-md flex items-center justify-between">
                 <div class="flex items-center gap-space-xs">
                   <span class="material-symbols-outlined text-secondary">
                     flight_land
                   </span>
-                  <h3 class="font-headline-sm text-headline-sm text-primary font-bold" id="tripModalTitle">
+                  <h3 class="font-headline-sm text-headline-sm text-primary font-bold"
+                      th:text="${editTrip != null} ? 'Modifier le voyage' : 'Nouveau Voyage & Destination'">
                     Nouveau Voyage &amp; Destination
                   </h3>
                 </div>
-                <button class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg" onclick="closeModal()">
+                <a th:href="@{/dashboard}" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg" data-close-trip-modal aria-label="Fermer">
                   <span class="material-symbols-outlined text-[20px]">
                     close
                   </span>
-                </button>
+                </a>
               </div>
-              <!-- Modal Form adhering to Trip UML structure -->
-              <form class="p-space-lg flex flex-col gap-space-md" id="newTripForm" onsubmit="handleNewTripSubmit(event)">
-                <!-- Trip Name -->
+              <form class="p-space-lg flex flex-col gap-space-md" id="newTripForm" method="post"
+                    th:action="${editTrip != null} ? @{/dashboard/trips/{id}(id=${editTrip.id})} : @{/dashboard/trips}">
                 <div class="flex flex-col gap-1">
-                  <label class="font-label-md text-label-md text-primary font-semibold">
+                  <label class="font-label-md text-label-md text-primary font-semibold" for="tripNameInput">
                     Intitulé du Voyage / Séjour *
                   </label>
-                  <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none" id="tripNameInput" placeholder="Ex: Découverte de Munich" required="" type="text"/>
+                  <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+                         id="tripNameInput" name="name" placeholder="Ex: Découverte de Munich" required type="text"
+                         th:value="${editTrip != null} ? ${editTrip.name} : ''"/>
                 </div>
                 <div class="flex flex-col gap-space-sm">
                   <div class="flex items-center justify-between gap-space-sm">
-                    <label class="font-label-md text-label-md text-primary font-semibold">
+                    <span class="font-label-md text-label-md text-primary font-semibold">
                       Pays de destination *
-                    </label>
-                    <button class="rounded-lg bg-surface-container px-space-sm py-1.5 font-label-md text-label-md text-primary" id="addTripCountryBtn" type="button">
+                    </span>
+                    <button class="rounded-lg bg-surface-container px-space-sm py-1.5 font-label-md text-label-md text-primary" id="addTripCountryBtn" type="button" data-app-handled="true">
                       Ajouter un pays
                     </button>
                   </div>
                   <div class="flex flex-col gap-space-sm" id="tripCountriesContainer">
-                    <div class="grid grid-cols-[1fr_6rem_auto] items-end gap-space-sm" data-trip-country-row="">
+                    <!-- Une ligne par pays (édition) ou une ligne vide (création). -->
+                    <div class="grid grid-cols-[1fr_6rem_auto] items-end gap-space-sm" data-trip-country-row=""
+                         th:each="country : ${editTrip != null ? editTrip.countries : emptyCountryRow}">
                       <div class="flex flex-col gap-1">
                         <label class="text-body-sm text-on-surface-variant">Pays</label>
-                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none" data-country-name="" placeholder="Ex: Allemagne" required="" type="text"/>
+                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+                               name="countryName" placeholder="Ex: Allemagne" required type="text"
+                               th:value="${country != null} ? ${country.country} : ''"/>
                       </div>
                       <div class="flex flex-col gap-1">
                         <label class="text-body-sm text-on-surface-variant">Code ISO</label>
-                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface uppercase placeholder:text-on-surface-variant focus:outline-none" data-country-iso="" maxlength="2" pattern="[A-Za-z]{2}" placeholder="DE" required="" type="text"/>
+                        <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface uppercase placeholder:text-on-surface-variant focus:outline-none"
+                               name="countryIso" maxlength="2" pattern="[A-Za-z]{2}" placeholder="DE" required type="text"
+                               th:value="${country != null} ? ${country.iso} : ''"/>
                       </div>
-                      <button aria-label="Retirer ce pays" class="rounded-lg px-2 py-2 text-error hover:bg-surface-container" data-remove-trip-country="" type="button">
+                      <button aria-label="Retirer ce pays" class="rounded-lg px-2 py-2 text-error hover:bg-surface-container" data-remove-trip-country="" type="button" data-app-handled="true">
                         Retirer
                       </button>
                     </div>
                   </div>
                 </div>
-                <!-- Dates UML: startDate, endDate -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
                   <div class="flex flex-col gap-1">
-                    <label class="font-label-md text-label-md text-primary font-semibold">
-                      Date de début (startDate) *
+                    <label class="font-label-md text-label-md text-primary font-semibold" for="tripStartInput">
+                      Date de début *
                     </label>
-                    <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none" id="tripStartInput" required="" type="date"/>
+                    <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none"
+                           id="tripStartInput" name="start" required type="date" th:value="${editTrip != null} ? ${editTrip.start} : ''"/>
                   </div>
                   <div class="flex flex-col gap-1">
-                    <label class="font-label-md text-label-md text-primary font-semibold">
-                      Date de fin (endDate) *
+                    <label class="font-label-md text-label-md text-primary font-semibold" for="tripEndInput">
+                      Date de fin *
                     </label>
-                    <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none" id="tripEndInput" required="" type="date"/>
+                    <input class="w-full px-space-md py-2 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface focus:outline-none"
+                           id="tripEndInput" name="end" required type="date" th:value="${editTrip != null} ? ${editTrip.end} : ''"/>
                   </div>
                 </div>
                 <div class="p-space-sm bg-surface-container-low rounded-lg text-body-sm text-on-surface-variant flex items-start gap-space-xs">
@@ -214,15 +255,15 @@
                     info
                   </span>
                   <span>
-                    L'ajout calculera automatiquement la durée du séjour et synchronisera le compte à rebours de votre carnet de voyage.
+                    La durée du séjour et le compte à rebours sont calculés automatiquement par le serveur.
                   </span>
                 </div>
-                <!-- Actions -->
                 <div class="flex items-center justify-end gap-space-sm pt-space-sm">
-                  <button class="px-space-md py-2 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors" onclick="closeModal()" type="button">
+                  <a th:href="@{/dashboard}" data-close-trip-modal class="px-space-md py-2 rounded-lg font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container transition-colors">
                     Annuler
-                  </button>
-                  <button class="bg-primary text-on-primary font-label-lg text-label-lg px-space-lg py-2 rounded-lg hover:bg-primary-container shadow transition-all" id="tripSubmitButton" type="submit">
+                  </a>
+                  <button class="bg-primary text-on-primary font-label-lg text-label-lg px-space-lg py-2 rounded-lg hover:bg-primary-container shadow transition-all" id="tripSubmitButton" type="submit"
+                          th:text="${editTrip != null} ? 'Enregistrer les modifications' : 'Créer et Enregistrer'">
                     Créer et Enregistrer
                   </button>
                 </div>
@@ -230,130 +271,7 @@
             </div>
           </div>
         </div>
-        <script>
-  // Dropdown interactivity
-  const tripDropdownBtn = document.getElementById('tripDropdownBtn');
-  const tripDropdownMenu = document.getElementById('tripDropdownMenu');
-  const tripDropdownChevron = document.getElementById('tripDropdownChevron');
-  if (tripDropdownBtn) {
-    tripDropdownBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isHidden = tripDropdownMenu.classList.contains('hidden');
-      if (isHidden) {
-        tripDropdownMenu.classList.remove('hidden');
-        tripDropdownChevron.classList.add('rotate-180');
-      } else {
-        tripDropdownMenu.classList.add('hidden');
-        tripDropdownChevron.classList.remove('rotate-180');
-      }
-    });
-    document.addEventListener('click', (e) => {
-      if (!tripDropdownBtn.contains(e.target) && !tripDropdownMenu.contains(e.target)) {
-        tripDropdownMenu.classList.add('hidden');
-        tripDropdownChevron.classList.remove('rotate-180');
-      }
-    });
-  }
-  // Active Trip Switcher
-  function switchTrip(name, iso, start, end) {
-    document.getElementById('selectedTripName').textContent = name;
-    document.getElementById('heroTripTitle').textContent = name;
-    document.getElementById('heroTripIso').textContent = iso;
-    const formatDate = (value) => new Intl.DateTimeFormat('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC'
-    }).format(new Date(`${value}T00:00:00Z`));
-    const startDay = Date.parse(`${start}T00:00:00Z`);
-    const endDay = Date.parse(`${end}T00:00:00Z`);
-    const now = new Date();
-    const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    const dayInMilliseconds = 86400000;
-    const daysUntilStart = Math.round((startDay - today) / dayInMilliseconds);
-    const daysUntilEnd = Math.round((endDay - today) / dayInMilliseconds);
-    const tripDuration = Math.round((endDay - startDay) / dayInMilliseconds) + 1;
-    const dates = document.getElementById('heroTripDates');
-    dates.replaceChildren();
-    const calendarIcon = document.createElement('span');
-    calendarIcon.className = 'material-symbols-outlined text-[16px] text-secondary';
-    calendarIcon.setAttribute('aria-hidden', 'true');
-    calendarIcon.textContent = 'calendar_today';
-    dates.append(calendarIcon, document.createTextNode(`Du ${formatDate(start)} au ${formatDate(end)}`));
-    document.getElementById('tripDuration').textContent = `${tripDuration} ${tripDuration === 1 ? 'jour' : 'jours'}`;
-    const statusPill = document.getElementById('tripStatusPill');
-    const statusIcon = document.getElementById('tripStatusIcon');
-    const countdownLabel = document.getElementById('countdownLabel');
-    const countdownDays = document.getElementById('countdownDays');
-    const countdownUnit = document.getElementById('countdownUnit');
-    const countdownExplainer = document.getElementById('countdownExplainer');
-    const dayLabel = (days) => days === 1 ? 'jour' : 'jours';
-    if (endDay 
-          
-          < today) {
-      const daysSinceEnd = Math.round((today - endDay) / dayInMilliseconds);
-      statusPill.className = 'inline-flex items-center gap-2 self-start rounded-full bg-surface-container-high px-space-md py-2 font-label-md text-label-md font-semibold text-on-surface-variant';
-      statusIcon.textContent = 'history';
-      document.getElementById('heroTripStatusBadge').textContent = 'Séjour terminé';
-      countdownLabel.textContent = 'Voyage terminé depuis';
-      countdownDays.textContent = daysSinceEnd;
-      countdownUnit.textContent = dayLabel(daysSinceEnd);
-      countdownExplainer.textContent = 'Les dates de fin du séjour sont passées.';
-    } else if (startDay >
- today) {
-      statusPill.className = 'inline-flex items-center gap-2 self-start rounded-full bg-secondary-container px-space-md py-2 font-label-md text-label-md font-semibold text-on-secondary-container';
-      statusIcon.textContent = 'schedule';
-      document.getElementById('heroTripStatusBadge').textContent = 'À venir';
-      countdownLabel.textContent = 'Départ dans';
-      countdownDays.textContent = daysUntilStart;
-      countdownUnit.textContent = dayLabel(daysUntilStart);
-      countdownExplainer.textContent = 'Le compte à rebours est calculé à partir de la date de départ.';
-    } else {
-      statusPill.className = 'inline-flex items-center gap-2 self-start rounded-full bg-primary-container px-space-md py-2 font-label-md text-label-md font-semibold text-on-primary-container';
-      statusIcon.textContent = 'flight_takeoff';
-      document.getElementById('heroTripStatusBadge').textContent = 'Séjour en cours';
-      if (daysUntilEnd === 0) {
-        countdownLabel.textContent = 'Dernier jour du séjour';
-        countdownDays.textContent = 'Aujourd’hui';
-        countdownUnit.textContent = '';
-        countdownExplainer.textContent = 'Le séjour se termine aujourd’hui.';
-      } else {
-        countdownLabel.textContent = 'Fin du séjour dans';
-        countdownDays.textContent = daysUntilEnd;
-        countdownUnit.textContent = dayLabel(daysUntilEnd);
-        countdownExplainer.textContent = 'Profitez bien de votre voyage !';
-      }
-    }
-    if (tripDropdownMenu) {
-      tripDropdownMenu.classList.add('hidden');
-      tripDropdownChevron.classList.remove('rotate-180');
-    }
-  }
-  // Modal handlers
-  function openModal() {
-    const modal = document.getElementById('addTripModal');
-    if (modal) modal.classList.remove('hidden');
-  }
-  function closeModal() {
-    const modal = document.getElementById('addTripModal');
-    if (modal) modal.classList.add('hidden');
-  }
-  function handleNewTripSubmit(e) {
-    e.preventDefault();
-    const name = document.getElementById('tripNameInput').value;
-    const iso = [...document.querySelectorAll('#tripCountriesContainer [data-country-iso]')]
-      .map((input) => input.value.toUpperCase())
-      .join(', ');
-    const start = document.getElementById('tripStartInput').value;
-    const end = document.getElementById('tripEndInput').value;
-    // Simulate switching to newly registered Trip
-    switchTrip(name, iso, start, end);
-    closeModal();
-    document.getElementById('newTripForm').reset();
-  }
-          
-          </script>
-        </main>
-      </div>
-    </body>
-  </html>
+      </main>
+    </div>
+  </body>
+</html>

@@ -21,6 +21,7 @@
     </header>
     <aside th:replace="~{fragments/layout :: sidebar('profil')}">
     </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="pl-64">
       <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
         <div class="flex flex-col gap-space-lg">
@@ -28,11 +29,13 @@
             <p class="font-label-md text-label-md text-secondary font-bold uppercase">
               Mon espace voyage
             </p>
-            <h1 class="font-headline-lg text-headline-lg text-primary font-bold mt-space-sm" data-profile-name>
+            <h1 class="font-headline-lg text-headline-lg text-primary font-bold mt-space-sm" data-profile-name
+                th:text="${#strings.isEmpty(profile.firstName + profile.lastName)} ? 'Mon profil' : ${profile.firstName} + ' ' + ${profile.lastName}">
               Mon profil
             </h1>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs" data-profile-summary>
-              Chargement du profil…
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs" data-profile-summary
+               th:text="${age != null or !#strings.isEmpty(profile.nationality)} ? (${age != null} ? ${age} + ' ans' : '') + (${age != null and !#strings.isEmpty(profile.nationality)} ? ' · ' : '') + (${profile.nationality} ?: '') : 'Complétez vos informations personnelles.'">
+              Complétez vos informations personnelles.
             </p>
           </section>
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
@@ -43,26 +46,26 @@
               <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
                 Modifiez vos informations puis enregistrez-les.
               </p>
-              <form class="space-y-space-md mt-space-lg" id="profile-form" onsubmit="event.preventDefault(); showSavedToast();">
+              <form class="space-y-space-md mt-space-lg" id="profile-form" th:action="@{/profil}" method="post">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
                   <div>
                     <label class="block font-semibold mb-1" for="firstName">
                       Prénom
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="firstName" name="firstName" type="text" required>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="firstName" name="firstName" th:value="${profile.firstName}" type="text" required>
                   </div>
                   <div>
                     <label class="block font-semibold mb-1" for="lastName">
                       Nom
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="lastName" name="lastName" type="text" required>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="lastName" name="lastName" th:value="${profile.lastName}" type="text" required>
                   </div>
                   <div>
                     <label class="block font-semibold mb-1" for="birthDate">
                       Date de naissance
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="birthDate" name="birthDate" type="text" placeholder="AAAA-MM-JJ" aria-describedby="birthDate-help">
-                    <small id="birthDate-help" data-profile-age>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="birthDate" name="birthDate" th:value="${profile.birthDate}" type="text" placeholder="AAAA-MM-JJ" aria-describedby="birthDate-help">
+                    <small id="birthDate-help" data-profile-age th:text="${age != null} ? 'Âge : ' + ${age} + ' ans' : 'Âge non renseigné.'">
                       Âge non renseigné.
                     </small>
                   </div>
@@ -70,13 +73,13 @@
                     <label class="block font-semibold mb-1" for="nationality">
                       Nationalité
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="nationality" name="nationality" type="text">
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="nationality" name="nationality" th:value="${profile.nationality}" type="text">
                   </div>
                   <div>
                     <label class="block font-semibold mb-1" for="email">
                       Adresse e-mail
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="email" name="email" type="email" required>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="email" name="email" th:value="${profile.email}" type="email" required>
                   </div>
                   <div>
                     <label class="block font-semibold mb-1" for="currentPassword">
@@ -89,22 +92,19 @@
                     <label class="block font-semibold mb-1" for="phone">
                       Téléphone
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="phone" name="phone" type="tel">
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="phone" name="phone" th:value="${profile.phone}" type="tel">
                   </div>
                   <div>
                     <label class="block font-semibold mb-1" for="passport">
                       Numéro de passeport
                     </label>
-                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="passport" name="passport" type="text">
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="passport" name="passport" th:value="${profile.passport}" type="text">
                   </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-space-md">
                   <button class="bg-primary text-on-primary font-semibold px-space-lg py-2 rounded-lg hover:bg-primary-container" type="submit">
                     Enregistrer les modifications
                   </button>
-                  <span class="font-label-md text-secondary opacity-0" id="save-status" role="status">
-                    Modifications enregistrées.
-                  </span>
                 </div>
               </form>
             </section>
