@@ -50,7 +50,7 @@ public class AuthController {
         }
         try {
             // Crée le compte après validation des champs.
-            accounts.register(form.getEmail(), form.getPassword());
+            accounts.register(form.getEmail(), form.getPassword(), form.getFirstName(), form.getLastName());
         } catch (ResponseStatusException ex) {
             // Associe les erreurs métier aux champs correspondants du formulaire.
             if (ex.getStatusCode().value() == HttpStatus.CONFLICT.value()) {

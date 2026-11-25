@@ -1,6 +1,9 @@
 package projet.saik.service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.time.Duration;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -15,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import projet.saik.model.Budget;
 import projet.saik.model.Country;
 import projet.saik.model.Expense;
+import projet.saik.model.FlightDetails;
 import projet.saik.model.TransportTicket;
 import projet.saik.model.Trip;
 import projet.saik.model.User;
@@ -26,7 +30,13 @@ import projet.saik.repository.TripRepository;
 import projet.saik.repository.UserRepository;
 import projet.saik.security.LoginAttemptService;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
+import projet.saik.web.TravelDataDtos.BudgetRequest;
+import projet.saik.web.TravelDataDtos.BudgetResponse;
+import projet.saik.web.TravelDataDtos.CountryRequest;
+import projet.saik.web.TravelDataDtos.CountryResponse;
 import projet.saik.web.TravelDataDtos.ExpenseResponse;
+import projet.saik.web.TravelDataDtos.FlightDetailsRequest;
+import projet.saik.web.TravelDataDtos.FlightDetailsResponse;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
 import projet.saik.web.TravelDataDtos.ProfileResponse;
 import projet.saik.web.TravelDataDtos.TicketRequest;
@@ -97,15 +107,14 @@ public class TravelDataService {
 
         // Attache le nouveau voyage au compte authentifié.
         User user = requireCurrentUser();
-        // Uniformise le code pays afin de retrouver plus facilement le pays en base.
-        String iso = request.iso().toUpperCase();
-        // Réutilise le pays existant ou l’ajoute au catalogue s’il n’y est pas encore.
-        Country country = countryRepository.findByCodeIso(iso).orElseGet(() -> {
-            // Construit le pays avec un nom débarrassé des espaces superflus.
-            Country created = new Country(request.country().trim(), iso);
-            // Persiste le nouveau pays et le retourne au traitement courant.
-            return countryRepository.save(created);
-        });
+        List<CountryRequest> requestedCountries = request.countries() == null || request.countries().isEmpty()
+                ? (request.country() == null || request.iso() == null
+                        ? List.of()
+                        : List.of(new CountryRequest(request.country(), request.iso())))
+                : request.countries();
+        if (requestedCountries.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Au moins un pays est requis.");
+        }
 
         // Prépare une nouvelle entité de voyage.
         Trip trip = new Trip();
@@ -117,8 +126,14 @@ public class TravelDataService {
         trip.setEndDate(request.end());
         // Lie le voyage à son propriétaire.
         trip.setUser(user);
-        // Associe au voyage le pays choisi.
-        trip.getCountries().add(country);
+        // Réutilise les pays connus et évite les doublons dans les destinations du voyage.
+        requestedCountries.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        country -> country.iso().trim().toUpperCase(),
+                        country -> country,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new))
+                .forEach((iso, requestedCountry) -> trip.getCountries().add(getOrCreateCountry(requestedCountry, iso)));
 
         // Chaque voyage possède un budget créé au même moment.
         Budget budget = new Budget();
@@ -129,6 +144,33 @@ public class TravelDataService {
 
         // Enregistre le voyage, puis renvoie sa représentation destinée à l’API.
         return toTripResponse(tripRepository.save(trip));
+    }
+
+    @Transactional
+    public TripResponse addCountry(Long tripId, CountryRequest request) {
+        Trip trip = requireOwnedTrip(tripId);
+        String iso = request.iso().trim().toUpperCase();
+        Country country = getOrCreateCountry(request, iso);
+        boolean alreadyAssociated = trip.getCountries().stream()
+                .anyMatch(existing -> existing.getCodeIso().equalsIgnoreCase(iso));
+        if (!alreadyAssociated) trip.getCountries().add(country);
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    @Transactional
+    public TripResponse removeCountry(Long tripId, String requestedIso) {
+        Trip trip = requireOwnedTrip(tripId);
+        String iso = requestedIso.trim().toUpperCase();
+        boolean removed = trip.getCountries().removeIf(country -> country.getCodeIso().equalsIgnoreCase(iso));
+        if (!removed) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ce pays n’est pas associé à ce voyage.");
+        }
+        return toTripResponse(tripRepository.save(trip));
+    }
+
+    private Country getOrCreateCountry(CountryRequest request, String iso) {
+        return countryRepository.findByCodeIso(iso).orElseGet(() -> countryRepository.save(
+                new Country(request.country().trim(), iso)));
     }
 
     // Consulte les titres après vérification de la propriété du voyage.
@@ -166,6 +208,12 @@ public class TravelDataService {
         ticket.setPrice(request.price());
         ticket.setApiBookingReference(request.reference());
         ticket.setAttachmentName(request.attachmentName());
+        if ("Avion".equalsIgnoreCase(request.type().trim())) {
+            FlightDetails flightDetails = toFlightDetails(request);
+            ticket.setFlightDetails(flightDetails);
+            ticket.setDeparture(flightDetails.getDepartureAirport() + " (" + flightDetails.getDepartureIata() + ")");
+            ticket.setArrival(flightDetails.getArrivalAirport() + " (" + flightDetails.getArrivalIata() + ")");
+        }
         // Relie ce titre au voyage concerné.
         ticket.setTrip(trip);
 
@@ -212,6 +260,36 @@ public class TravelDataService {
             generatedExpense.getBudget().getExpenses().remove(generatedExpense);
             expenseRepository.delete(generatedExpense);
         }
+    }
+
+    // Retourne les budgets du voyage (total et par catégorie).
+    @Transactional
+    public BudgetResponse getBudget(Long tripId) {
+        return toBudgetResponse(requireBudget(requireOwnedTrip(tripId)));
+    }
+
+    // Remplace les budgets par catégorie du voyage.
+    @Transactional
+    public BudgetResponse updateBudget(Long tripId, BudgetRequest request) {
+        Budget budget = requireBudget(requireOwnedTrip(tripId));
+        Map<String, Double> limits = new LinkedHashMap<>();
+        if (request.categoryBudgets() != null) {
+            request.categoryBudgets().forEach((category, amount) -> {
+                if (category == null || category.isBlank() || amount == null) return;
+                if (amount < 0 || !Double.isFinite(amount)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le budget d’une catégorie doit être positif ou nul.");
+                }
+                limits.put(category.trim(), amount);
+            });
+        }
+        budget.getCategoryBudgets().clear();
+        budget.getCategoryBudgets().putAll(limits);
+        if (request.plannedTotal() != null) budget.setPlannedTotal(request.plannedTotal());
+        return toBudgetResponse(budgetRepository.save(budget));
+    }
+
+    private BudgetResponse toBudgetResponse(Budget budget) {
+        return new BudgetResponse(budget.getPlannedTotal(), budget.getActualTotal(), new LinkedHashMap<>(budget.getCategoryBudgets()));
     }
 
     @Transactional(readOnly = true)
@@ -380,13 +458,17 @@ public class TravelDataService {
 
     // Convertit l’entité de voyage en réponse JSON sans exposer l’entité JPA directement.
     private TripResponse toTripResponse(Trip trip) {
-        // Utilise le premier pays associé, ou une valeur vide si aucun pays n’est disponible.
-        Country country = trip.getCountries().stream().findFirst().orElse(null);
+        List<CountryResponse> countries = trip.getCountries().stream()
+                .sorted(java.util.Comparator.comparing(Country::getName))
+                .map(country -> new CountryResponse(country.getName(), country.getCodeIso()))
+                .toList();
+        CountryResponse country = countries.isEmpty() ? null : countries.get(0);
         return new TripResponse(
                 trip.getId(),
                 trip.getName(),
-                country == null ? "" : country.getName(),
-                country == null ? "" : country.getCodeIso(),
+                country == null ? "" : country.country(),
+                country == null ? "" : country.iso(),
+                countries,
                 trip.getStartDate(),
                 trip.getEndDate());
     }
@@ -403,7 +485,109 @@ public class TravelDataService {
                 ticket.getArrivalTime(),
                 ticket.getPrice(),
                 ticket.getApiBookingReference(),
-                ticket.getAttachmentName());
+                ticket.getAttachmentName(),
+                toFlightDetailsResponse(ticket.getFlightDetails()));
+    }
+
+    private FlightDetails toFlightDetails(TicketRequest request) {
+        FlightDetailsRequest details = request.flightDetails();
+        if (details == null
+                || isBlank(details.departureAirport()) || isBlank(details.arrivalAirport())
+                || !matches(details.departureIata(), "[A-Za-z]{3}")
+                || !matches(details.arrivalIata(), "[A-Za-z]{3}")
+                || isBlank(details.airline()) || isBlank(details.fareType())
+                || !matches(details.eticketNumber(), "\\d{13}")
+                || !matches(request.reference(), "[A-Za-z0-9]{6}")
+                || details.stopCount() == null || details.stopCount() < 0 || details.stopCount() > 20
+                || !("Confirmé / OK".equals(details.ticketStatus())
+                        || "En attente".equals(details.ticketStatus())
+                        || "Annulé".equals(details.ticketStatus()))
+                || details.departureUtcOffsetMinutes() == null || details.arrivalUtcOffsetMinutes() == null
+                || !isValidUtcOffset(details.departureUtcOffsetMinutes())
+                || !isValidUtcOffset(details.arrivalUtcOffsetMinutes())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Pour un vol, renseignez les aéroports, les codes IATA, la compagnie, le tarif, "
+                            + "un numéro de billet à 13 chiffres, un PNR à 6 caractères et les fuseaux horaires.");
+        }
+        if (request.arrivalTime() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L’heure locale d’arrivée du vol est obligatoire.");
+        }
+        if (details.stopCount() > 0 && isBlank(details.stopDetails())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Précisez les aéroports et les durées des escales.");
+        }
+
+        long durationMinutes = Duration.between(
+                request.departureTime().minusMinutes(details.departureUtcOffsetMinutes()),
+                request.arrivalTime().minusMinutes(details.arrivalUtcOffsetMinutes())).toMinutes();
+        if (durationMinutes <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La durée du vol doit être positive ; vérifiez les horaires locaux et leurs décalages UTC.");
+        }
+
+        FlightDetails flight = new FlightDetails();
+        flight.setDepartureAirport(details.departureAirport().trim());
+        flight.setDepartureIata(details.departureIata().trim().toUpperCase());
+        flight.setArrivalAirport(details.arrivalAirport().trim());
+        flight.setArrivalIata(details.arrivalIata().trim().toUpperCase());
+        flight.setStopCount(details.stopCount());
+        flight.setStopDetails(trimToNull(details.stopDetails()));
+        flight.setAirline(details.airline().trim());
+        flight.setFlightNumber(trimToNull(details.flightNumber()));
+        flight.setFareType(details.fareType().trim());
+        flight.setCabinBaggage(trimToNull(details.cabinBaggage()));
+        flight.setCabinBaggageWeightKg(details.cabinBaggageWeightKg());
+        flight.setCabinBaggageDimensions(trimToNull(details.cabinBaggageDimensions()));
+        flight.setPersonalItem(trimToNull(details.personalItem()));
+        flight.setPersonalItemDetails(trimToNull(details.personalItemDetails()));
+        flight.setCheckedBaggage(trimToNull(details.checkedBaggage()));
+        flight.setCheckedBaggageWeightKg(details.checkedBaggageWeightKg());
+        flight.setCheckedBaggageDimensions(trimToNull(details.checkedBaggageDimensions()));
+        flight.setModificationConditions(trimToNull(details.modificationConditions()));
+        flight.setCancellationConditions(trimToNull(details.cancellationConditions()));
+        flight.setSeatChoice(trimToNull(details.seatChoice()));
+        flight.setExtraBaggage(trimToNull(details.extraBaggage()));
+        flight.setSpecialMeal(trimToNull(details.specialMeal()));
+        flight.setOptionalServices(trimToNull(details.optionalServices()));
+        flight.setEticketNumber(details.eticketNumber().trim());
+        flight.setTicketStatus(trimToNull(details.ticketStatus()));
+        flight.setDepartureUtcOffsetMinutes(details.departureUtcOffsetMinutes());
+        flight.setArrivalUtcOffsetMinutes(details.arrivalUtcOffsetMinutes());
+        flight.setDurationMinutes(durationMinutes);
+        return flight;
+    }
+
+    private FlightDetailsResponse toFlightDetailsResponse(FlightDetails flight) {
+        if (flight == null) return null;
+        return new FlightDetailsResponse(
+                flight.getDepartureAirport(), flight.getDepartureIata(),
+                flight.getArrivalAirport(), flight.getArrivalIata(),
+                flight.getStopCount(), flight.getStopDetails(), flight.getAirline(),
+                flight.getFlightNumber(), flight.getFareType(), flight.getCabinBaggage(),
+                flight.getCabinBaggageWeightKg(), flight.getCabinBaggageDimensions(),
+                flight.getPersonalItem(), flight.getPersonalItemDetails(), flight.getCheckedBaggage(),
+                flight.getCheckedBaggageWeightKg(), flight.getCheckedBaggageDimensions(),
+                flight.getModificationConditions(), flight.getCancellationConditions(),
+                flight.getSeatChoice(), flight.getExtraBaggage(), flight.getSpecialMeal(),
+                flight.getOptionalServices(), flight.getEticketNumber(), flight.getTicketStatus(),
+                flight.getDepartureUtcOffsetMinutes(), flight.getArrivalUtcOffsetMinutes(),
+                flight.getDurationMinutes());
+    }
+
+    private boolean isValidUtcOffset(int offsetMinutes) {
+        return offsetMinutes >= -720 && offsetMinutes <= 840 && offsetMinutes % 15 == 0;
+    }
+
+    private boolean matches(String value, String pattern) {
+        return value != null && value.matches(pattern);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private String trimToNull(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 
     // Convertit une dépense JPA en réponse destinée à l’interface.

@@ -1,15 +1,18 @@
 package projet.saik.web;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
-// Regroupe les formats JSON échangés entre le navigateur et l’API.
+// définit les formats de données JSON échangés pour les voyages, dépenses, billets et profils.
 public final class TravelDataDtos {
 
     // Empêche de créer une instance de cette classe utilitaire.
@@ -20,14 +23,32 @@ public final class TravelDataDtos {
     public record TripRequest(
             // Le nom du voyage doit être renseigné.
             @NotBlank String name,
-            // Le nom du pays doit être renseigné.
-            @NotBlank String country,
-            // Le code pays contient exactement deux lettres.
-            @NotBlank @Pattern(regexp = "[A-Za-z]{2}") String iso,
+            // Champs conservés pour les anciens clients qui n’envoient qu’un seul pays.
+            String country,
+            @Pattern(regexp = "[A-Za-z]{2}") String iso,
+            // Pays du voyage pour les clients prenant en charge plusieurs destinations.
+            List<@jakarta.validation.Valid CountryRequest> countries,
             // La date de départ est obligatoire.
             @NotNull LocalDate start,
             // La date de retour est obligatoire.
             @NotNull LocalDate end) {
+        public TripRequest(String name, String country, String iso, LocalDate start, LocalDate end) {
+            this(name, country, iso, null, start, end);
+        }
+
+        @AssertTrue(message = "Au moins un pays correctement renseigné est requis.")
+        public boolean hasCountries() {
+            return (countries != null && !countries.isEmpty())
+                    || (country != null && !country.isBlank() && iso != null && iso.matches("[A-Za-z]{2}"));
+        }
+    }
+
+    public record CountryRequest(
+            @NotBlank String country,
+            @NotBlank @Pattern(regexp = "[A-Za-z]{2}") String iso) {
+    }
+
+    public record CountryResponse(String country, String iso) {
     }
 
     // Renvoie au navigateur les informations utiles d’un voyage enregistré.
@@ -40,6 +61,8 @@ public final class TravelDataDtos {
             String country,
             // Code à deux lettres du pays associé.
             String iso,
+            // Tous les pays associés au voyage.
+            List<CountryResponse> countries,
             // Date de départ enregistrée.
             LocalDate start,
             // Date de retour enregistrée.
@@ -65,7 +88,76 @@ public final class TravelDataDtos {
             // Référence de réservation facultative.
             String reference,
             // Nom du fichier justificatif sélectionné, sans téléverser le fichier.
-            String attachmentName) {
+            String attachmentName,
+            // Détails propres aux billets d’avion ; absents pour les autres transports.
+            FlightDetailsRequest flightDetails) {
+        public TicketRequest(String type, String description, String departure, String arrival,
+                LocalDateTime departureTime, LocalDateTime arrivalTime, Double price,
+                String reference, String attachmentName) {
+            this(type, description, departure, arrival, departureTime, arrivalTime, price,
+                    reference, attachmentName, null);
+        }
+    }
+
+    public record FlightDetailsRequest(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes) {
+    }
+
+    public record FlightDetailsResponse(
+            String departureAirport,
+            String departureIata,
+            String arrivalAirport,
+            String arrivalIata,
+            Integer stopCount,
+            String stopDetails,
+            String airline,
+            String flightNumber,
+            String fareType,
+            String cabinBaggage,
+            Double cabinBaggageWeightKg,
+            String cabinBaggageDimensions,
+            String personalItem,
+            String personalItemDetails,
+            String checkedBaggage,
+            Double checkedBaggageWeightKg,
+            String checkedBaggageDimensions,
+            String modificationConditions,
+            String cancellationConditions,
+            String seatChoice,
+            String extraBaggage,
+            String specialMeal,
+            String optionalServices,
+            String eticketNumber,
+            String ticketStatus,
+            Integer departureUtcOffsetMinutes,
+            Integer arrivalUtcOffsetMinutes,
+            Long durationMinutes) {
     }
 
     // Présente au navigateur un titre de transport enregistré.
@@ -89,7 +181,23 @@ public final class TravelDataDtos {
             // Référence associée à la réservation.
             String reference,
             // Nom du justificatif sélectionné.
-            String attachmentName) {
+            String attachmentName,
+            // Détails complémentaires présents uniquement pour un billet d’avion.
+            FlightDetailsResponse flightDetails) {
+    }
+
+
+    // Budgets reçus : total facultatif et montant alloué à chaque catégorie.
+    public record BudgetRequest(
+            @DecimalMin("0.0") Double plannedTotal,
+            Map<String, Double> categoryBudgets) {
+    }
+
+    // Budgets renvoyés au navigateur avec le total dépensé.
+    public record BudgetResponse(
+            Double plannedTotal,
+            Double actualTotal,
+            Map<String, Double> categoryBudgets) {
     }
 
     // Reçoit les données nécessaires à la création d’une dépense.
