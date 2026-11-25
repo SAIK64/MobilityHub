@@ -1,34 +1,29 @@
-# SAIK — Gestion de voyages et de mobilités étudiantes
+# SAIK — Gestion de voyages étudiants
 
 SAIK est un projet réalisé dans le cadre de la formation **ING2**, pour le
-module **JEE**. L'objectif est de concevoir une application web de gestion de
-voyages et de séjours étudiants, avec un parcours dédié à la mobilité
-académique.
-
-> Le dépôt contient actuellement le socle Spring Boot de l'application. Les
-> fonctionnalités métier décrites ci-dessous constituent le périmètre prévu
-> dans les spécifications ; elles ne sont pas toutes implémentées à ce stade.
+module **JEE**. Cette application web permet de préparer et de suivre des
+voyages, leurs transports et leurs dépenses.
 
 ## Présentation
 
-La plateforme vise à gérer les étudiants, leurs dossiers de mobilité, les
-destinations partenaires, les logements et les documents administratifs. La
-mobilité académique est conçue comme une option activable sur un dossier
-étudiant. Lorsqu'elle est activée, le parcours doit notamment prendre en
-compte les justificatifs requis, le choix d'une destination et le suivi de
-l'éligibilité.
+L'application propose :
 
-Les principales règles métier envisagées sont :
+- la création d'un compte, la connexion et la modification du profil ;
+- la création et la sélection de voyages, avec un ou plusieurs pays ;
+- l'ajout et le retrait de pays sur un voyage existant ;
+- la gestion des titres de transport et des dépenses, avec recherche et
+  filtres ;
+- le suivi des budgets par catégorie et la création d'une dépense associée
+  à un billet lorsque nécessaire ;
+- une page de conseils de sécurité et des liens vers des sources officielles.
 
-- suivre l'état d'avancement des dossiers (incomplet, en cours, validé ou
-  refusé) ;
-- vérifier les documents requis pour une mobilité ;
-- associer les étudiants à des destinations et gérer les capacités d'accueil ;
-- référencer les logements disponibles liés aux destinations ;
-- proposer une interface web et des endpoints REST.
+Les données sont accessibles depuis les pages web et une API REST. Les
+réservations externes, le téléversement des pièces jointes et l'envoi d'alertes
+ne sont pas connectés. L'API ne propose pas encore un CRUD complet pour chaque
+ressource, notamment la modification et la suppression d'un voyage.
 
-Pour le détail du périmètre, du modèle de données et des règles fonctionnelles,
-consulter le [document de spécifications et d'architecture](./sp_cifications_et_architecture_du_projet.md).
+Pour une analyse du projet et des points restant à vérifier, consulter le
+[bilan du projet](./BILAN_PROJET_JEE.md).
 
 ## Équipe et cadre du projet
 
@@ -62,6 +57,16 @@ Depuis la racine du dépôt :
 
 Sous Windows, utiliser `mvnw.cmd` à la place de `./mvnw`.
 
+Ouvrir ensuite [http://localhost:8080](http://localhost:8080), créer un compte
+sur la page d'inscription et se connecter. Pour utiliser un autre port si
+8080 est occupé :
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+```
+
+L'application sera alors accessible sur `http://localhost:8081`.
+
 ## Exécuter les tests
 
 ```bash
@@ -81,14 +86,40 @@ src/
 └── test/java/projet/saik/      # Tests
 ```
 
-L'interface comprend cinq vues Thymeleaf : le tableau de bord (`/`), les
+La page d'accueil publique est accessible sur `/` et `/accueil` ; elle présente
+l'application et donne accès à la connexion et à l'inscription. Après
+connexion, `/` affiche le tableau de bord.
+
+Les pages partagent la palette et les composants définis dans [DESIGN.md](./DESIGN.md).
+Leur navigation commune se trouve dans `templates/fragments/layout.html` ;
+les styles et paramètres partagés sont dans `static/css/design.css` et
+`static/js/design-tokens.js`.
+
+Le JavaScript des pages connectées utilise des modules ES : `travel-app.js`
+initialise l'application, `common.js` regroupe les fonctions partagées, et
+`trips.js`, `transports.js`, `budget.js` et `profile.js` gèrent leurs
+fonctionnalités respectives.
+
+L'interface connectée comprend cinq vues Thymeleaf : le tableau de bord (`/` ou `/dashboard`), les
 transports (`/transports`), le budget (`/budget`), le kit de sécurité
 (`/securite`) et le profil (`/profil`). Les voyages, titres, dépenses et
 informations de profil modifiables sont envoyés aux routes `/api/...` et
 persistés par Spring Data JPA dans la base H2 locale `./data/saikdb`.
 Hibernate crée ou met à jour les tables à partir des entités Java.
-Les principales routes sont `/api/trips`, `/api/trips/{id}/tickets`,
-`/api/trips/{id}/expenses` et `/api/profile`.
+Le fichier de base H2 est local et ignoré par Git.
+
+## API métier
+
+| Fonction | Routes |
+|---|---|
+| Lister et créer des voyages | `GET`, `POST /api/trips` |
+| Ajouter ou retirer un pays | `POST /api/trips/{tripId}/countries`, `DELETE /api/trips/{tripId}/countries/{iso}` |
+| Lister et ajouter des billets | `GET`, `POST /api/trips/{tripId}/tickets` |
+| Supprimer un billet | `DELETE /api/tickets/{ticketId}` |
+| Consulter et modifier le budget | `GET`, `PUT /api/trips/{tripId}/budget` |
+| Lister et ajouter des dépenses | `GET`, `POST /api/trips/{tripId}/expenses` |
+| Supprimer une dépense | `DELETE /api/expenses/{expenseId}` |
+| Consulter et modifier le profil | `GET`, `PUT /api/profile` |
 
 ## Authentification
 
@@ -101,9 +132,9 @@ voyages, billets, dépenses et profil. La déconnexion est disponible dans
 l'en-tête. Les requêtes modifiant les données et la déconnexion sont protégées
 contre les attaques CSRF.
 
-Les routes de la branche `security` sont également disponibles :
+L'API propose également des routes d'authentification :
 
-- `POST /api/v1/auth/register` accepte `{"email":"...","password":"..."}`.
+- `POST /api/v1/auth/register` accepte `{"firstName":"...","lastName":"...","email":"...","password":"..."}`.
 - `POST /api/v1/auth/login` accepte les mêmes champs et retourne un jeton
   `Bearer` (`token`, `type`, `expiresInSeconds`).
 - Pour les autres routes `/api/...`, transmettre ce jeton dans l'en-tête
@@ -142,9 +173,8 @@ export SAIK_IRIS_DEMO_PASSWORD
 Le compte utilise l'adresse fictive `iris.geyer@email.com` du template et le
 mot de passe choisi, stocké avec BCrypt. Son profil et le voyage « Chine —
 Découverte & Aventure », du 1er au 21 mars 2026, sont enregistrés en base avec
-un budget vide. Les autres éléments présentés par le template (itinéraire,
-réservations et dépenses) restent des exemples visuels : ils ne sont pas
-enregistrés automatiquement. Ce séjour est passé et apparaît donc archivé.
+un budget vide. Les billets et dépenses ne sont pas créés automatiquement.
+Ce séjour est passé et apparaît donc archivé.
 
 La création est facultative et ne se produit qu'au démarrage lorsque la variable
 est renseignée. Si un compte avec cette adresse existe déjà, il n'est jamais
@@ -158,7 +188,42 @@ production, utiliser HTTPS, gérer les secrets et la base de façon appropriée,
 et ajouter notamment une limitation des tentatives de connexion ainsi qu'une
 procédure sécurisée de réinitialisation des mots de passe.
 
+La page de sécurité affiche le voyage sélectionné et renvoie vers les conseils
+officiels : elle ne fournit pas de numéros d'urgence par destination et ne
+transmet aucune alerte.
+
+Le profil affiche les informations enregistrées du compte. L'âge est calculé
+à partir de la date de naissance ; saisir celle-ci au format `AAAA-MM-JJ` ou
+avec un mois en français, puis enregistrer les modifications.
+
 Les réservations auprès de partenaires ne sont pas connectées ;
 les pièces jointes ne conservent que leur nom de fichier et ne sont pas
 téléversées. Les actions de sécurité et de compte qui nécessitent un service
 externe restent explicitement indiquées comme non connectées.
+
+
+### Administration et sécurité
+
+- **Premier administrateur** : définir `SAIK_ADMIN_EMAIL` et `SAIK_ADMIN_PASSWORD`
+  (8 caractères minimum, 72 octets maximum) avant le démarrage. Le compte est créé
+  avec le rôle `ROLE_ADMIN` (prénom « Administrateur », nom « SAIK ») ; s'il existe
+  déjà, le rôle lui est ajouté sans changer son mot de passe. Sans `SAIK_ADMIN_EMAIL`,
+  aucun administrateur n'est créé. Retirer `SAIK_ADMIN_PASSWORD` de l'environnement
+  une fois le compte créé.
+- **Routes d'administration** (session web ou jeton `Bearer`, rôle `ROLE_ADMIN`) :
+  `GET /api/admin/users` liste les comptes (sans mot de passe) ;
+  `DELETE /api/admin/users/{id}` supprime un compte avec ses voyages et exige la
+  permission `USER_DELETE`. Un administrateur ne peut pas supprimer son propre compte.
+  Les routes sont protégées par l'URL (`SecurityConfig`) et par `@PreAuthorize`.
+- **Rôles et permissions** : les rôles (`ROLE_…`) et leurs permissions (`TRIP_READ`,
+  `TRIP_WRITE`, `USER_DELETE`) sont transmis comme autorisations Spring Security,
+  y compris dans les claims `roles` et `permissions` du jeton JWT.
+- **Blocage des connexions** : après `SAIK_MAX_LOGIN_ATTEMPTS` échecs (5 par défaut)
+  sur une adresse, la connexion est refusée pendant `SAIK_LOCKOUT_MINUTES` minutes
+  (15 par défaut), sur le formulaire web comme sur l'API. Le compteur est en mémoire
+  et repart de zéro au redémarrage.
+- **Changement d'adresse e-mail** : `PUT /api/profile` exige `currentPassword` lorsque
+  l'adresse change.
+- **Cookie de session** : `HttpOnly` et `SameSite=Lax`. Définir `SAIK_COOKIE_SECURE=true`
+  lorsque l'application est servie en HTTPS.
+- `SAIK_SHOW_SQL=true` réactive l'affichage des requêtes SQL en développement.

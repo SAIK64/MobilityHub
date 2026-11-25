@@ -21,6 +21,8 @@ import projet.saik.repository.TransportTicketRepository;
 import projet.saik.repository.TripRepository;
 import projet.saik.service.TravelDataService;
 import projet.saik.service.AccountService;
+import projet.saik.web.TravelDataDtos.BudgetRequest;
+import projet.saik.web.TravelDataDtos.CountryRequest;
 import projet.saik.web.TravelDataDtos.ExpenseRequest;
 import projet.saik.web.TravelDataDtos.ProfileRequest;
 import projet.saik.web.TravelDataDtos.TicketRequest;
@@ -57,7 +59,7 @@ class TravelDataServiceTests {
     @BeforeEach
     // Crée un compte puis place son identifiant dans le contexte de sécurité pour le test.
     void authenticate() {
-        var user = accountService.register("etudiant@example.test", "motdepasse-test");
+        var user = accountService.register("etudiant@example.test", "motdepasse-test", "Étudiant", "Test");
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(user.getId().toString(), null, java.util.List.of()));
     }
@@ -66,6 +68,38 @@ class TravelDataServiceTests {
     // Nettoie le contexte pour que l’authentification ne déborde pas sur un autre test.
     void clearAuthentication() {
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    // Vérifie l’enregistrement et la lecture des budgets par catégorie.
+    void storesCategoryBudgets() {
+        var trip = travelDataService.createTrip(new TripRequest(
+                "Budget test", "France", "FR",
+                LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
+        travelDataService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Transport", 500.0, "Tech", 40.0)));
+        var budget = travelDataService.getBudget(trip.id());
+        assertEquals(500.0, budget.categoryBudgets().get("Transport"));
+        assertEquals(2, budget.categoryBudgets().size());
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> travelDataService.updateBudget(trip.id(), new BudgetRequest(null, java.util.Map.of("Tech", -1.0))));
+    }
+
+    @Test
+    void managesMultipleCountriesForATrip() {
+        var trip = travelDataService.createTrip(new TripRequest(
+                "Circuit européen", null, null,
+                java.util.List.of(new CountryRequest("France", "FR"), new CountryRequest("Espagne", "ES")),
+                LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
+
+        assertEquals(java.util.List.of("ES", "FR"),
+                trip.countries().stream().map(country -> country.iso()).toList());
+
+        var withItaly = travelDataService.addCountry(trip.id(), new CountryRequest("Italie", "IT"));
+        assertEquals(3, withItaly.countries().size());
+
+        var withoutSpain = travelDataService.removeCountry(trip.id(), "es");
+        assertEquals(java.util.List.of("FR", "IT"),
+                withoutSpain.countries().stream().map(country -> country.iso()).toList());
     }
 
     @Test
@@ -101,12 +135,45 @@ class TravelDataServiceTests {
     }
 
     @Test
+    // Vérifie la conservation des détails d’un vol et le calcul tenant compte des fuseaux horaires.
+    void persistsFlightDetailsAndCalculatesElapsedDuration() {
+        var trip = travelDataService.createTrip(new TripRequest(
+                "Vol test", "France", "FR",
+                LocalDate.of(2030, 4, 10), LocalDate.of(2030, 4, 20)));
+        var details = new projet.saik.web.TravelDataDtos.FlightDetailsRequest(
+                "Paris-Charles-de-Gaulle", "cdg", "New York-JFK", "jfk",
+                1, "1 h 30 à Londres (LHR)", "Air Test", "AT123", "Economy Flex",
+                "Bagage cabine", 8.0, "56 x 45 x 25 cm", "Oui", "40 x 30 x 15 cm",
+                "1 pièce", 23.0, "158 cm",
+                "Modifiable avec frais", "Remboursable", "Siège standard",
+                "1 bagage supplémentaire", "Végétarien", "Embarquement prioritaire",
+                "0571234567890", "Confirmé / OK", 60, -300);
+
+        var ticket = travelDataService.createTicket(trip.id(), new TicketRequest(
+                "Avion", "Vol AT123", "", "",
+                LocalDateTime.of(2030, 4, 10, 10, 0),
+                LocalDateTime.of(2030, 4, 10, 12, 30),
+                420.0, "a1b2c3", null, details));
+
+        assertEquals(510L, ticket.flightDetails().durationMinutes());
+        assertEquals("CDG", ticket.flightDetails().departureIata());
+        assertEquals("JFK", ticket.flightDetails().arrivalIata());
+        assertEquals("0571234567890", ticket.flightDetails().eticketNumber());
+        assertEquals("Paris-Charles-de-Gaulle (CDG)", ticket.departure());
+        assertEquals("New York-JFK (JFK)", ticket.arrival());
+        ticketRepository.flush();
+        var storedDetails = ticketRepository.findById(ticket.id()).orElseThrow().getFlightDetails();
+        assertEquals(510L, storedDetails.getDurationMinutes());
+        assertEquals("56 x 45 x 25 cm", storedDetails.getCabinBaggageDimensions());
+    }
+
+    @Test
     // Vérifie qu’un changement d’adresse e-mail est conservé pendant toute la session de test.
     void profileUpdateRemainsAvailableAfterEmailChange() {
         // Remplace les informations du profil par une nouvelle adresse.
         var updated = travelDataService.updateProfile(new ProfileRequest(
                 "Étudiant", "Démo", "", "Française",
-                "nouveau@example.test", "", ""));
+                "nouveau@example.test", "", "", "motdepasse-test"));
 
         // Vérifie la réponse de mise à jour et les lectures suivantes du profil.
         assertEquals("nouveau@example.test", updated.email());

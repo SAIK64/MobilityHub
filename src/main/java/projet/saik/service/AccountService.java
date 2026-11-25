@@ -1,6 +1,7 @@
 package projet.saik.service;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -32,13 +33,20 @@ public class AccountService {
     }
 
     @Transactional
-    // Valide les identifiants, encode le mot de passe et enregistre le nouveau compte.
-    public User register(String email, String password) {
+    // Valide les informations, encode le mot de passe et enregistre le nouveau compte.
+    public User register(String email, String password, String firstName, String lastName) {
         // Uniformise l’adresse afin de prévenir les doublons dus aux espaces ou à la casse.
         String normalized = email.trim().toLowerCase(Locale.ROOT);
         // Refuse une adresse déjà associée à un compte.
         if (users.findByEmailIgnoreCase(normalized).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cette adresse e-mail est déjà utilisée.");
+        }
+        String normalizedFirstName = firstName == null ? "" : firstName.trim();
+        String normalizedLastName = lastName == null ? "" : lastName.trim();
+        if (normalizedFirstName.isBlank() || normalizedLastName.isBlank()
+                || normalizedFirstName.length() > 100 || normalizedLastName.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le prénom et le nom sont obligatoires et ne peuvent pas dépasser 100 caractères.");
         }
         // Contrôle la longueur minimale et la limite en octets imposée par BCrypt.
         if (password.isBlank() || password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72) {
@@ -47,15 +55,15 @@ public class AccountService {
         }
         // Prépare le compte et renseigne les champs initiaux du profil.
         User user = new User();
-        user.setFirstName("Utilisateur");
-        user.setLastName("");
+        user.setFirstName(normalizedFirstName);
+        user.setLastName(normalizedLastName);
         user.setEmail(normalized);
         // Enregistre uniquement l’empreinte du mot de passe, jamais le texte en clair.
         user.setPassword(passwords.encode(password));
         // Attribue le rôle standard et signale une configuration incomplète s’il est absent.
-        user.setRoles(Set.of(roles.findByName("ROLE_USER")
-                .orElseThrow(() -> new IllegalStateException("Le rôle utilisateur est absent."))));
-        // Persiste le compte et force l’écriture pour obtenir les erreurs de base immédiatement.
+        // Ensemble modifiable : Hibernate le gère et on pourra ajouter d’autres rôles plus tard.
+        user.setRoles(new HashSet<>(Set.of(roles.findByName("ROLE_USER")
+                .orElseThrow(() -> new IllegalStateException("Le rôle utilisateur est absent.")))));
         return users.saveAndFlush(user);
     }
 }

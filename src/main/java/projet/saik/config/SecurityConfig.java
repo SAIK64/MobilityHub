@@ -2,6 +2,9 @@ package projet.saik.config;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -12,27 +15,33 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
 @Configuration
+// Active @PreAuthorize pour protéger aussi les méthodes, en plus des règles par URL.
+@EnableMethodSecurity
 // Configure l’authentification web par session et l’authentification API par jeton JWT.
 public class SecurityConfig {
     // Journalise les cas où un jeton de remplacement est généré sans secret configuré.
@@ -87,12 +96,21 @@ public class SecurityConfig {
     @Order(1)
     // API REST : les routes d’authentification acceptent les connexions sans jeton.
     SecurityFilterChain tokenApi(HttpSecurity http) throws Exception {
-        // Convertit les rôles déclarés dans le JWT en autorisations Spring.
-        JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
-        roles.setAuthoritiesClaimName("roles");
-        roles.setAuthorityPrefix("ROLE_");
+        // Convertit les claims « roles » (préfixés ROLE_) et « permissions » du JWT en autorisations Spring.
+        Converter<Jwt, Collection<GrantedAuthority>> authorities = jwt -> {
+            List<GrantedAuthority> granted = new ArrayList<>();
+            List<String> roles = jwt.getClaimAsStringList("roles");
+            if (roles != null) {
+                roles.forEach(role -> granted.add(new SimpleGrantedAuthority("ROLE_" + role)));
+            }
+            List<String> permissions = jwt.getClaimAsStringList("permissions");
+            if (permissions != null) {
+                permissions.forEach(permission -> granted.add(new SimpleGrantedAuthority(permission)));
+            }
+            return granted;
+        };
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(roles);
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
         RequestMatcher tokenApi = request -> path(request).startsWith("/api/v1/auth/")
                 || (path(request).startsWith("/api/")
                     && request.getHeader("Authorization") != null
@@ -103,7 +121,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
-                        .requestMatchers("/api/v1/students", "/api/v1/mobilities/pending").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(converter)));
         return http.build();
@@ -114,9 +132,9 @@ public class SecurityConfig {
     SecurityFilterChain web(HttpSecurity http) throws Exception {
         // Définit l’accès aux pages publiques, à la console H2 et aux routes d’administration.
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/register", "/error", "/js/**", "/css/**", "/images/**").permitAll()
+                .requestMatchers("/", "/accueil", "/login", "/register", "/error", "/js/**", "/css/**", "/images/**").permitAll()
                 .requestMatchers("/h2-console/**").denyAll()
-                .requestMatchers("/admin/**", "/api/v1/students", "/api/v1/mobilities/pending").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
                 .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))

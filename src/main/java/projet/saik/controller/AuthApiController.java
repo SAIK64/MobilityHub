@@ -57,8 +57,9 @@ public class AuthApiController {
     @ResponseStatus(HttpStatus.CREATED)
     // Crée un compte et renvoie ses informations publiques sans renvoyer son mot de passe.
     public RegisteredUser register(@Valid @RequestBody AuthRequest request) {
-        var user = accounts.register(request.getEmail(), request.getPassword());
-        return new RegisteredUser(user.getId(), user.getEmail(), "USER");
+        var user = accounts.register(request.getEmail(), request.getPassword(),
+                request.getFirstName(), request.getLastName());
+        return new RegisteredUser(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), "USER");
     }
 
     @PostMapping("/login")
@@ -69,12 +70,15 @@ public class AuthApiController {
             var auth = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken.unauthenticated(request.email(), request.password()));
             Instant now = Instant.now();
-            // Convertit les autorisations en noms de rôles à inclure dans les claims du jeton.
-            List<String> roles = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority)
-                    .map(role -> role.replaceFirst("^ROLE_", "")).toList();
+            // Sépare les rôles (ROLE_…) des permissions (USER_DELETE…) pour les claims du jeton.
+            List<String> authorities = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
+            List<String> roles = authorities.stream().filter(a -> a.startsWith("ROLE_"))
+                    .map(a -> a.substring("ROLE_".length())).toList();
+            List<String> permissions = authorities.stream().filter(a -> !a.startsWith("ROLE_")).toList();
             // Définit l’émetteur, l’utilisateur, les dates de validité et les rôles du jeton.
             var claims = JwtClaimsSet.builder().issuer("saik").subject(auth.getName())
-                    .issuedAt(now).expiresAt(now.plusSeconds(expirationSeconds)).claim("roles", roles).build();
+                    .issuedAt(now).expiresAt(now.plusSeconds(expirationSeconds))
+                    .claim("roles", roles).claim("permissions", permissions).build();
             // Choisit l’algorithme HMAC configuré pour signer le JWT.
             var header = JwsHeader.with(MacAlgorithm.HS256).build();
             String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
@@ -88,7 +92,7 @@ public class AuthApiController {
     // Champs obligatoires reçus lors d’une demande de connexion.
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
     // Données non sensibles renvoyées après la création d’un compte.
-    public record RegisteredUser(Long id, String email, String role) {}
+    public record RegisteredUser(Long id, String firstName, String lastName, String email, String role) {}
     // Format JSON du jeton renvoyé après une connexion réussie.
     public record TokenResponse(String token, String type, long expiresInSeconds) {}
 }
