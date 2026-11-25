@@ -283,6 +283,19 @@ choisi, stocké avec BCrypt. Son profil et le voyage « Chine — Découverte &
 Aventure », du 1er au 21 mars 2027, sont enregistrés avec un budget vide ;
 aucun billet ni dépense n'est créé.
 
+**Réinitialiser le mot de passe du compte Iris** (ses voyages, billets et
+dépenses sont conservés) : définir `SAIK_IRIS_RESET_PASSWORD` (8 caractères
+minimum, 72 octets maximum), démarrer l'application une fois, puis retirer la
+variable.
+
+```bash
+read -rs -p "Nouveau mot de passe Iris : " SAIK_IRIS_RESET_PASSWORD; echo
+export SAIK_IRIS_RESET_PASSWORD
+SERVER_PORT=8081 ./mvnw spring-boot:run
+# après le démarrage : arrêter l'application, puis
+unset SAIK_IRIS_RESET_PASSWORD
+```
+
 La création est facultative et ne se produit qu'au démarrage lorsque la variable
 est renseignée. Si un compte avec cette adresse existe déjà, il n'est jamais
 modifié et son mot de passe n'est pas réinitialisé. Après création, retirer la
