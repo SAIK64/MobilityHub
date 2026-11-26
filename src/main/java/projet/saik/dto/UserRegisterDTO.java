@@ -1,4 +1,5 @@
 package projet.saik.dto;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 //évite d'écrire manuellement tous les getters et setters
@@ -11,6 +12,7 @@ public class UserRegisterDTO {
     private String lastName;
 
     @NotBlank(message = "L'email est obligatoire")
+    @Email(message = "Format d'email invalide")
     private String email;
     
     @NotBlank(message = "Le mot de passe est obligatoire")
