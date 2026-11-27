@@ -90,12 +90,25 @@ public final class TravelDataDtos {
             // Nom du fichier justificatif sélectionné, sans téléverser le fichier.
             String attachmentName,
             // Détails propres aux billets d’avion ; absents pour les autres transports.
-            FlightDetailsRequest flightDetails) {
+            FlightDetailsRequest flightDetails,
+            // Train, VTC/taxi, bus, ferry : opérateur (ex. SNCF), numéro de service (ex. TGV 6611) et place.
+            String operatorName,
+            String serviceNumber,
+            String seatInfo) {
+        // Constructeur court : billet sans détails de vol ni informations d’opérateur.
         public TicketRequest(String type, String description, String departure, String arrival,
                 LocalDateTime departureTime, LocalDateTime arrivalTime, Double price,
                 String reference, String attachmentName) {
             this(type, description, departure, arrival, departureTime, arrivalTime, price,
-                    reference, attachmentName, null);
+                    reference, attachmentName, null, null, null, null);
+        }
+
+        // Constructeur pour un vol : détails de vol, sans informations d’opérateur terrestre.
+        public TicketRequest(String type, String description, String departure, String arrival,
+                LocalDateTime departureTime, LocalDateTime arrivalTime, Double price,
+                String reference, String attachmentName, FlightDetailsRequest flightDetails) {
+            this(type, description, departure, arrival, departureTime, arrivalTime, price,
+                    reference, attachmentName, flightDetails, null, null, null);
         }
     }
 
@@ -183,7 +196,11 @@ public final class TravelDataDtos {
             // Nom du justificatif sélectionné.
             String attachmentName,
             // Détails complémentaires présents uniquement pour un billet d’avion.
-            FlightDetailsResponse flightDetails) {
+            FlightDetailsResponse flightDetails,
+            // Train, VTC/taxi, bus, ferry : opérateur, numéro de service et place.
+            String operatorName,
+            String serviceNumber,
+            String seatInfo) {
     }
 
 

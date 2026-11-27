@@ -1,5 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <!-- En-tête HTML commun aux pages connectées : titre, polices, Tailwind, thème et script de l'application. -->
+  <head th:fragment="head(title)">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title th:text="${title} + ' | SAIK Travel'">SAIK Travel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <style>
+@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }
+    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/js/design-tokens.js"></script>
+    <link href="/css/design.css" rel="stylesheet"/>
+    <script type="module" src="/js/travel-app.js"></script>
+  </head>
   <body>
     <header th:fragment="publicHeader(showDiscover)" class="header public-header">
       <a class="brand" href="/accueil" th:href="@{/accueil}">
@@ -35,19 +50,42 @@
             </span>
           </span>
         </a>
-        <span class="hidden xl:block font-label-md text-label-md text-on-surface-variant truncate max-w-xs" data-selected-trip>
-          Chargement du voyage sélectionné…
+        <!-- Sélecteur du voyage actif : la liste vient du modèle (LayoutAdvice), le choix est mémorisé en session. -->
+        <form th:if="${trips != null and !#lists.isEmpty(trips)}" th:action="@{/trips/select}" method="post" class="hidden md:flex items-center gap-space-xs min-w-0">
+          <input type="hidden" name="returnTo" th:value="${currentPath}"/>
+          <label for="header-trip-select" class="font-label-md text-label-md text-on-surface-variant shrink-0">Voyage :</label>
+          <select id="header-trip-select" name="tripId" onchange="this.form.submit()" data-selected-trip
+                  class="max-w-xs truncate rounded-lg bg-surface-container px-space-sm py-1.5 font-label-md text-label-md text-on-surface">
+            <option th:each="trip : ${trips}" th:value="${trip.id}"
+                    th:selected="${selectedTrip != null and trip.id == selectedTrip.id}"
+                    th:text="${trip.name} + ' · ' + ${trip.countryNames}">Voyage</option>
+          </select>
+          <noscript><button type="submit" class="text-label-md text-primary">OK</button></noscript>
+        </form>
+        <span th:if="${trips == null or #lists.isEmpty(trips)}" data-selected-trip class="hidden md:block font-label-md text-label-md text-on-surface-variant">
+          Aucun voyage enregistré
         </span>
-        <button class="flex items-center gap-space-xs bg-primary text-on-primary font-label-lg text-label-lg px-space-md py-2 rounded-lg hover:bg-primary-container transition-colors shrink-0" type="button" aria-label="Nouveau voyage">
-          <span class="material-symbols-outlined text-[18px]" aria-hidden="true">
-            add
-          </span>
-          <span class="hidden sm:inline">
-            Nouveau voyage
-          </span>
-        </button>
+        <div class="flex items-center gap-space-sm shrink-0">
+          <a th:href="@{/dashboard(action='new-trip')}" class="flex items-center gap-space-xs bg-primary text-on-primary font-label-lg text-label-lg px-space-md py-2 rounded-lg hover:bg-primary-container transition-colors" aria-label="Nouveau voyage">
+            <span class="material-symbols-outlined text-[18px]" aria-hidden="true">
+              add
+            </span>
+            <span class="hidden sm:inline">
+              Nouveau voyage
+            </span>
+          </a>
+          <form th:action="@{/logout}" method="post">
+            <button type="submit" data-app-handled="true" class="text-sm font-semibold text-primary">Déconnexion</button>
+          </form>
+        </div>
       </div>
     </header>
+    <!-- Message de confirmation ou d'erreur transmis par le contrôleur après une redirection (flash). -->
+    <div th:fragment="flash" th:if="${message != null or error != null}" id="app-toast" role="status" aria-live="polite"
+         th:classappend="${error != null} ? 'bg-error text-on-error' : 'bg-primary text-on-primary'"
+         class="fixed bottom-6 right-6 z-50 max-w-sm rounded-lg px-space-md py-3 shadow-lg"
+         th:text="${error != null} ? ${error} : ${message}">
+    </div>
     <aside th:fragment="sidebar(active)" class="app-sidebar fixed left-0 top-16 bottom-0 w-64 bg-surface-container-low p-space-md z-40">
       <details class="app-sidebar-details" open>
         <summary class="app-sidebar-toggle">

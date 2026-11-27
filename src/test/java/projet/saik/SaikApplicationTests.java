@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
         // Isole le contexte de test de la base persistante utilisée par l’application.
-		"spring.datasource.url=jdbc:h2:mem:saik-test;DB_CLOSE_DELAY=-1",
+		"spring.datasource.url=jdbc:h2:mem:saik-context-test;DB_CLOSE_DELAY=-1",
         // Supprime le schéma mémoire après les tests.
 		"spring.jpa.hibernate.ddl-auto=create-drop"
 })

@@ -1,0 +1,145 @@
+package projet.saik.service;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
+import projet.saik.model.Budget;
+import projet.saik.model.Expense;
+import projet.saik.model.TransportTicket;
+import projet.saik.model.Trip;
+import projet.saik.repository.BudgetRepository;
+import projet.saik.repository.ExpenseRepository;
+import projet.saik.repository.TransportTicketRepository;
+import projet.saik.web.TravelDataDtos.BudgetRequest;
+import projet.saik.web.TravelDataDtos.BudgetResponse;
+import projet.saik.web.TravelDataDtos.ExpenseRequest;
+import projet.saik.web.TravelDataDtos.ExpenseResponse;
+
+@Service
+// Règles métier du budget d’un voyage (1-1) et de ses dépenses (1-N).
+public class BudgetService {
+
+    // Accès aux budgets associés aux voyages.
+    private final BudgetRepository budgetRepository;
+    // Accès aux dépenses manuelles ou générées automatiquement.
+    private final ExpenseRepository expenseRepository;
+    // Accès aux titres pour détacher une dépense générée.
+    private final TransportTicketRepository ticketRepository;
+    // Contrôles d’identité et de propriété.
+    private final AccessService access;
+
+    public BudgetService(BudgetRepository budgetRepository, ExpenseRepository expenseRepository, TransportTicketRepository ticketRepository, AccessService access) {
+        this.budgetRepository = budgetRepository;
+        this.expenseRepository = expenseRepository;
+        this.ticketRepository = ticketRepository;
+        this.access = access;
+    }
+
+    // Retourne les budgets du voyage (total et par catégorie).
+    @Transactional
+    public BudgetResponse getBudget(Long tripId) {
+        return toBudgetResponse(access.requireBudget(access.requireOwnedTrip(tripId)));
+    }
+
+    // Remplace les budgets par catégorie du voyage.
+    @Transactional
+    public BudgetResponse updateBudget(Long tripId, BudgetRequest request) {
+        Budget budget = access.requireBudget(access.requireOwnedTrip(tripId));
+        Map<String, Double> limits = new LinkedHashMap<>();
+        if (request.categoryBudgets() != null) {
+            request.categoryBudgets().forEach((category, amount) -> {
+                if (category == null || category.isBlank() || amount == null) return;
+                if (amount < 0 || !Double.isFinite(amount)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le budget d’une catégorie doit être positif ou nul.");
+                }
+                limits.put(category.trim(), amount);
+            });
+        }
+        budget.getCategoryBudgets().clear();
+        budget.getCategoryBudgets().putAll(limits);
+        if (request.plannedTotal() != null) budget.setPlannedTotal(request.plannedTotal());
+        return toBudgetResponse(budgetRepository.save(budget));
+    }
+
+    private BudgetResponse toBudgetResponse(Budget budget) {
+        return new BudgetResponse(budget.getPlannedTotal(), budget.getActualTotal(), new LinkedHashMap<>(budget.getCategoryBudgets()));
+    }
+
+    @Transactional(readOnly = true)
+    // Liste les dépenses du voyage après contrôle des droits d’accès.
+    public List<ExpenseResponse> getExpenses(Long tripId) {
+        // Vérifie que le voyage appartient à la personne connectée.
+        Trip trip = access.requireOwnedTrip(tripId);
+        // Charge son budget, trie les dépenses par date décroissante et prépare les réponses.
+        return budgetRepository.findByTripId(trip.getId())
+                .map(budget -> expenseRepository.findByBudgetIdOrderByExpenseDateDesc(budget.getId())
+                        .stream()
+                        .map(this::toExpenseResponse)
+                        .toList())
+                .orElseGet(List::of);
+    }
+
+    @Transactional
+    // Enregistre une dépense saisie dans l’interface.
+    public ExpenseResponse createExpense(Long tripId, ExpenseRequest request) {
+        // Vérifie la propriété du voyage avant de modifier son budget.
+        Trip trip = access.requireOwnedTrip(tripId);
+        // Récupère ou initialise le budget associé.
+        Budget budget = access.requireBudget(trip);
+
+        // Prépare l’entité de dépense.
+        Expense expense = new Expense();
+        // Nettoie le libellé et la catégorie, puis copie les informations fournies.
+        expense.setDescription(request.description().trim());
+        expense.setAmount(request.amount());
+        expense.setCategory(request.category().trim());
+        expense.setExpenseDate(request.date());
+        expense.setPaymentMethod(request.paymentMethod());
+        expense.setReceiptName(request.receiptName());
+        // Seule la valeur booléenne true active le statut automatique.
+        expense.setIsAutoGenerated(Boolean.TRUE.equals(request.autoGenerated()));
+        // Rattache la dépense au budget et met à jour la relation en mémoire.
+        expense.setBudget(budget);
+        budget.getExpenses().add(expense);
+
+        // Persiste la dépense puis renvoie les données utiles à l’interface.
+        return toExpenseResponse(expenseRepository.save(expense));
+    }
+
+    // Supprime une dépense et détache proprement un éventuel titre associé.
+    @Transactional
+    public void deleteExpense(Long expenseId) {
+        // Recherche la dépense ou retourne une erreur 404 si elle n’existe pas.
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dépense introuvable."));
+        // Vérifie que son voyage appartient à la personne authentifiée.
+        access.requireOwnedTrip(expense.getBudget().getTrip().getId());
+        // Repère le titre si cette dépense a été générée à partir d’un transport.
+        TransportTicket ticket = expense.getTransportTicket();
+        // Retire le lien inverse pour éviter de conserver une référence vers la dépense supprimée.
+        if (ticket != null) {
+            ticket.setGeneratedExpense(null);
+            ticketRepository.save(ticket);
+        }
+        // Retire la dépense de la collection du budget avant sa suppression en base.
+        expense.getBudget().getExpenses().remove(expense);
+        expenseRepository.delete(expense);
+    }
+
+    // Convertit une dépense JPA en réponse destinée à l’interface.
+    private ExpenseResponse toExpenseResponse(Expense expense) {
+        return new ExpenseResponse(
+                expense.getId(),
+                expense.getDescription(),
+                expense.getAmount(),
+                expense.getCategory(),
+                expense.getExpenseDate(),
+                expense.getPaymentMethod(),
+                expense.getReceiptName(),
+                expense.getIsAutoGenerated());
+    }
+}

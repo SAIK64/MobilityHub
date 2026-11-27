@@ -1,5 +1,6 @@
 package projet.saik.config;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 
 import org.slf4j.Logger;
@@ -9,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import projet.saik.model.Budget;
@@ -74,6 +76,34 @@ public class IrisDemoInitializer {
                 // Confirme la création sans exposer de données d’authentification.
                 log.info("Le compte de démonstration Iris et son voyage en Chine ont été créés.");
             });
+        };
+    }
+
+    @Bean
+    @Order(3)
+    // Remplace le mot de passe du compte Iris existant, seulement si SAIK_IRIS_RESET_PASSWORD est définie.
+    // Les voyages, billets et dépenses du compte sont conservés. Retirer la variable après usage.
+    CommandLineRunner resetIrisPassword(
+            @Value("${saik.iris-reset-password:}") String newPassword,
+            UserRepository users,
+            PasswordEncoder passwordEncoder,
+            TransactionTemplate transactions) {
+        return args -> {
+            if (newPassword.isEmpty()) {
+                return;
+            }
+            // Mêmes règles qu'à l'inscription : 8 caractères minimum, 72 octets maximum (limite de BCrypt).
+            if (newPassword.isBlank() || newPassword.length() < 8
+                    || newPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
+                throw new IllegalStateException(
+                        "SAIK_IRIS_RESET_PASSWORD doit contenir entre 8 caractères et 72 octets.");
+            }
+            transactions.executeWithoutResult(status -> users.findByEmailIgnoreCase(EMAIL).ifPresentOrElse(iris -> {
+                // Le mot de passe est enregistré sous forme d'empreinte BCrypt, jamais en clair.
+                iris.setPassword(passwordEncoder.encode(newPassword));
+                users.save(iris);
+                log.info("Le mot de passe du compte Iris a été réinitialisé. Retirez SAIK_IRIS_RESET_PASSWORD.");
+            }, () -> log.warn("Aucun compte Iris à réinitialiser dans cette base.")));
         };
     }
 }
