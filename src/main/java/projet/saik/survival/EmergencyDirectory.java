@@ -1,4 +1,4 @@
-package projet.saik.security;
+package projet.saik.survival;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

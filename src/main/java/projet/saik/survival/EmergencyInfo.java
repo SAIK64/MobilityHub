@@ -1,4 +1,4 @@
-package projet.saik.security;
+package projet.saik.survival;
 
 /** Coordonnées téléphoniques d'urgence connues pour une destination. */
 public record EmergencyInfo(
