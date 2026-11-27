@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,6 +14,7 @@ import projet.saik.model.User;
 import projet.saik.service.AccountService;
 import projet.saik.dto.UserRegisterDTO;
 import projet.saik.dto.UserResponseDTO;
+import projet.saik.dto.UserUpdateDTO;
 
 @RestController
 // Le contrôleur REST pour la gestion des utilisateurs, accessible via ce choix de URL /api/v1/admin/users pour eviter les conflits avec d’autres contrôleurs sur le navigateur
@@ -48,4 +51,20 @@ public class UserRestController {
                 user.getEmail()
         );
     }
+    //Update user (firstName, lastName, email, password) via the API REST; requires the ADMIN role.
+    @PatchMapping("/update/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    //
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO request) {
+        User updatedUser = accountService.updateUser(
+            id,
+            request.getEmail(),
+            request.getFirstName(), 
+            request.getLastName()
+        );
+        UserResponseDTO response = toResponseDto(updatedUser);
+        return ResponseEntity.ok(response);
+    }
+    
+
 }

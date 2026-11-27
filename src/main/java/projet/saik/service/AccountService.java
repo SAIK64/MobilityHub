@@ -66,4 +66,34 @@ public class AccountService {
                 .orElseThrow(() -> new IllegalStateException("Le rôle utilisateur est absent.")))));
         return users.saveAndFlush(user);
     }
+    // Met à jour les informations d’un compte existant, en utilisant l’ID pour le retrouver et en vérifiant les contraintes de validation.
+    @Transactional 
+    public User updateUser(Long id, String email, String firstName, String lastName) {
+        // Récupère l’utilisateur existant ou renvoie une erreur si l’ID est invalide.
+        User user = users.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé."));
+        // Met à jour les champs si les nouvelles valeurs sont fournies et valides.
+        if(email != null && !email.isBlank()){
+             // Uniformise l’adresse afin de prévenir les doublons dus aux espaces ou à la casse.
+            String normalized = email.trim().toLowerCase(Locale.ROOT);
+            if (!normalized.equals(user.getEmail()) && users.findByEmailIgnoreCase(normalized).isPresent()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cette adresse e-mail est déjà utilisée.");
+            }
+            user.setEmail(normalized);
+        }
+        if(firstName != null && !firstName.isBlank()){
+            String normalizedFirstName = firstName.trim();
+            if (normalizedFirstName.length() > 100) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le prénom ne peut pas dépasser 100 caractères.");
+            }
+            user.setFirstName(normalizedFirstName);
+        }
+        if(lastName != null && !lastName.isBlank()){
+            String normalizedLastName = lastName.trim();
+            if (normalizedLastName.length() > 100) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de famille ne peut pas dépasser 100 caractères.");
+            }
+            user.setLastName(normalizedLastName);
+        }
+        return users.saveAndFlush(user);
+    }
 }
