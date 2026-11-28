@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Mon profil')}"></head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <header th:replace="~{fragments/layout :: appHeader}">
+    </header>
+    <aside th:replace="~{fragments/layout :: sidebar('profil')}">
+    </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="pl-64">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+        <div class="flex flex-col gap-space-lg">
+          <section class="rounded-xl bg-surface-container p-space-lg">
+            <p class="font-label-md text-label-md text-secondary font-bold uppercase">
+              Mon espace voyage
+            </p>
+            <h1 class="font-headline-lg text-headline-lg text-primary font-bold mt-space-sm" data-profile-name
+                th:text="${#strings.isEmpty(profile.firstName + profile.lastName)} ? 'Mon profil' : ${profile.firstName} + ' ' + ${profile.lastName}">
+              Mon profil
+            </h1>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs" data-profile-summary
+               th:text="${age != null or !#strings.isEmpty(profile.nationality)} ? (${age != null} ? ${age} + ' ans' : '') + (${age != null and !#strings.isEmpty(profile.nationality)} ? ' · ' : '') + (${profile.nationality} ?: '') : 'Complétez vos informations personnelles.'">
+              Complétez vos informations personnelles.
+            </p>
+          </section>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+            <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+              <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                Informations personnelles
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+                Modifiez vos informations puis enregistrez-les.
+              </p>
+              <form class="space-y-space-md mt-space-lg" id="profile-form" th:action="@{/profil}" method="post">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+                  <div>
+                    <label class="block font-semibold mb-1" for="firstName">
+                      Prénom
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="firstName" name="firstName" th:value="${profile.firstName}" type="text" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="lastName">
+                      Nom
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="lastName" name="lastName" th:value="${profile.lastName}" type="text" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="birthDate">
+                      Date de naissance
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="birthDate" name="birthDate" th:value="${profile.birthDate}" type="text" placeholder="AAAA-MM-JJ" aria-describedby="birthDate-help">
+                    <small id="birthDate-help" data-profile-age th:text="${age != null} ? 'Âge : ' + ${age} + ' ans' : 'Âge non renseigné.'">
+                      Âge non renseigné.
+                    </small>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="nationality">
+                      Nationalité
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="nationality" name="nationality" th:value="${profile.nationality}" type="text">
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="email">
+                      Adresse e-mail
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="email" name="email" th:value="${profile.email}" type="email" required>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="currentPassword">
+                      Mot de passe actuel
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" placeholder="Requis seulement pour changer l'adresse e-mail">
+                    <span class="text-sm text-on-surface-variant mt-1 block">Confirme votre identité quand vous modifiez l'adresse de connexion.</span>
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="phone">
+                      Téléphone
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="phone" name="phone" th:value="${profile.phone}" type="tel">
+                  </div>
+                  <div>
+                    <label class="block font-semibold mb-1" for="passport">
+                      Numéro de passeport
+                    </label>
+                    <input class="w-full px-3 py-2 bg-surface-container-low rounded-lg" id="passport" name="passport" th:value="${profile.passport}" type="text">
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-space-md">
+                  <button class="bg-primary text-on-primary font-semibold px-space-lg py-2 rounded-lg hover:bg-primary-container" type="submit">
+                    Enregistrer les modifications
+                  </button>
+                </div>
+              </form>
+            </section>
+            <section class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm self-start">
+              <h2 class="font-headline-sm text-headline-sm text-primary font-semibold">
+                Mes données
+              </h2>
+              <p class="font-body-sm text-body-sm text-on-surface-variant mt-space-sm">
+                Téléchargez les informations de votre profil et vos voyages enregistrés.
+              </p>
+              <button type="button" class="mt-space-md bg-surface-container text-primary font-semibold px-space-md py-2 rounded-lg" onclick="exportTravelData()">
+                Exporter mes données
+              </button>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

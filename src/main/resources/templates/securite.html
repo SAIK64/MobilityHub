@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<!-- Guide pratique : regroupe les informations de sécurité, d’urgence et de connectivité. -->
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+  <head th:replace="~{fragments/layout :: head('Sécurité')}"></head>
+  <body class="bg-surface font-body-md text-on-surface antialiased">
+    <header th:replace="~{fragments/layout :: appHeader}">
+    </header>
+    <aside th:replace="~{fragments/layout :: sidebar('securite')}">
+    </aside>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="pl-64">
+      <main class="w-full min-h-[calc(100vh-4rem)] pt-16 px-gutter py-space-lg bg-surface">
+        <div class="flex flex-col w-full pb-space-2xl gap-space-xl">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md p-space-lg rounded-xl bg-surface-container shadow-sm">
+            <div class="flex items-start sm:items-center gap-space-md">
+              <div class="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-on-primary shrink-0 shadow-md">
+                <span class="material-symbols-outlined text-[28px]" aria-hidden="true">
+                  health_and_safety
+                </span>
+              </div>
+              <div>
+                <h1 class="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
+                  Kit de survie &amp; sécurité
+                </h1>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5" data-selected-trip
+                   th:text="${selectedTrip != null} ? 'Voyage sélectionné : ' + ${selectedTrip.name} + ' · ' + ${selectedTrip.countryNames} : 'Aucun voyage sélectionné.'">
+                  Aucun voyage sélectionné.
+                </p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                  SAIK ne transmet pas votre position et ne contacte pas les services d’urgence.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
+            <section class="xl:col-span-7 flex flex-col gap-space-lg" aria-labelledby="emergency-title">
+              <div class="flex items-center gap-space-xs">
+                <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                  dialer_sip
+                </span>
+                <h2 id="emergency-title" class="font-headline-md text-headline-md text-primary font-bold">
+                  Numéros d’urgence prioritaires
+                </h2>
+              </div>
+              <p class="font-body-sm text-body-sm text-on-surface-variant">
+                Les numéros ci-dessous proviennent du référentiel local SAIK. Ils sont fournis à titre indicatif : vérifiez-les auprès des autorités officielles avant le départ.
+              </p>
+              <div th:if="${selectedTrip != null and !#lists.isEmpty(selectedTrip.countries)}"
+                   class="flex flex-col gap-space-md">
+                <article th:each="country : ${selectedTrip.countries}"
+                         class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-sm">
+                  <div class="flex items-center justify-between gap-space-sm">
+                    <h3 class="font-label-lg text-label-lg text-primary font-bold" th:text="${country.country}">Pays</h3>
+                    <span class="text-xs font-semibold tracking-wide text-on-surface-variant" th:text="${country.iso}">ISO</span>
+                  </div>
+                  <div th:with="info=${emergencyByIso[country.iso]}">
+                    <div th:if="${info != null}" class="grid grid-cols-2 sm:grid-cols-4 gap-space-sm">
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Urgence générale</p><p class="font-headline-sm text-primary font-bold" th:text="${info.emergency}">112</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Police</p><p class="font-headline-sm text-primary font-bold" th:text="${info.police}">17</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Ambulance</p><p class="font-headline-sm text-primary font-bold" th:text="${info.ambulance}">15</p></div>
+                      <div class="rounded-lg bg-surface-container-low p-space-sm"><p class="text-xs text-on-surface-variant">Pompiers</p><p class="font-headline-sm text-primary font-bold" th:text="${info.fire}">18</p></div>
+                    </div>
+                    <p th:if="${info != null}" class="font-body-sm text-on-surface-variant" th:text="${info.notes}">Informations complémentaires</p>
+                    <p th:if="${info == null}" class="font-body-sm text-on-surface-variant">
+                      Les numéros de ce pays ne sont pas encore renseignés dans le référentiel local. Vérifiez les coordonnées officielles avant votre départ.
+                    </p>
+                  </div>
+                </article>
+              </div>
+              <div th:if="${selectedTrip == null or #lists.isEmpty(selectedTrip.countries)}"
+                   class="p-space-lg rounded-xl bg-surface-container-lowest">
+                Sélectionnez ou créez un voyage avec au moins une destination pour afficher ses numéros d'urgence.
+              </div>
+            </section>
+            <section class="xl:col-span-5 flex flex-col gap-space-lg" aria-labelledby="consular-title">
+              <div class="flex items-center gap-space-xs">
+                <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                  account_balance
+                </span>
+                <h2 id="consular-title" class="font-headline-md text-headline-md text-primary font-bold">
+                  Réseau diplomatique
+                </h2>
+              </div>
+              <div class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm flex flex-col gap-space-md">
+                <h3 class="font-headline-sm text-headline-sm text-primary font-bold">
+                  Conseils par destination
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                  Consultez les recommandations officielles et les coordonnées consulaires applicables à votre destination.
+                </p>
+                <a class="flex items-center justify-center gap-2 py-2 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-colors" href="https://www.diplomatie.gouv.fr/fr/conseils-aux-voyageurs/" target="_blank" rel="noopener noreferrer">
+                  Consulter les conseils aux voyageurs
+                </a>
+              </div>
+            </section>
+          </div>
+          <section class="flex flex-col gap-space-lg" aria-labelledby="connectivity-title">
+            <div class="flex items-center gap-space-xs">
+              <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                cell_tower
+              </span>
+              <h2 id="connectivity-title" class="font-headline-md text-headline-md text-primary font-bold">
+                Connectivité &amp; Internet mobile
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Forfait mobile
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez les tarifs et les options internationales auprès de votre opérateur.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Wi-Fi public
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Privilégiez les réseaux fiables et évitez les opérations sensibles sur un réseau public.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Avant le départ
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Conservez vos documents et contacts importants accessibles hors ligne.
+                </p>
+              </article>
+            </div>
+          </section>
+          <section class="flex flex-col gap-space-lg" aria-labelledby="preparation-title">
+            <div class="flex items-center gap-space-xs">
+              <span class="material-symbols-outlined text-secondary text-[24px]" aria-hidden="true">
+                gavel
+              </span>
+              <h2 id="preparation-title" class="font-headline-md text-headline-md text-primary font-bold">
+                Préparation &amp; formalités
+              </h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Documents de voyage
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez la validité de vos documents et les formalités d’entrée auprès des autorités concernées.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Assurance &amp; santé
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Vérifiez votre couverture et les recommandations sanitaires avant de partir.
+                </p>
+              </article>
+              <article class="p-space-lg rounded-xl bg-surface-container-lowest shadow-sm">
+                <h3 class="font-label-lg text-label-lg text-primary font-bold">
+                  Contacts d’urgence
+                </h3>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                  Enregistrez dans votre téléphone un proche à contacter, votre assurance voyage et les coordonnées de votre hébergement.
+                </p>
+              </article>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+import { apiRequest, announce, announceRequestError, downloadFile } from './common.js';
+
+// Comportements d’interface de la page profil.
+// Le formulaire est pré-rempli et enregistré par ProfilController (POST /profil).
+
+// Accepte « 2005-03-05 » ou « 5 mars 2005 », comme le serveur (ProfilController).
+function parseBirthDate(value) {
+  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  const french = /^(\d{1,2})\s+([a-zéû]+)\s+(\d{4})$/i.exec(value.trim());
+  let year;
+  let month;
+  let day;
+  if (iso) [, year, month, day] = iso.map(Number);
+  else if (french) [day, month, year] = [Number(french[1]), months.indexOf(french[2].toLowerCase()) + 1, Number(french[3])];
+  else return null;
+  if (!month) return null;
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+}
+
+// Met à jour l’âge affiché pendant la saisie (aperçu ; la valeur de référence est calculée par le serveur).
+function updateAgePreview() {
+  const value = document.getElementById('birthDate')?.value || '';
+  const date = value ? parseBirthDate(value) : null;
+  const today = new Date();
+  let age = date ? today.getFullYear() - date.getFullYear() : null;
+  if (date && (today.getMonth() < date.getMonth() || (today.getMonth() === date.getMonth() && today.getDate() < date.getDate()))) age--;
+  document.querySelectorAll('[data-profile-age]').forEach((element) => {
+    element.textContent = age !== null && age >= 0 ? `Âge : ${age} ans`
+      : value ? 'Âge indisponible : vérifiez la date (AAAA-MM-JJ ou 5 mars 2005).' : 'Âge non renseigné.';
+  });
+}
+
+// Exporte le profil et les voyages au format JSON (via l’API REST).
+window.exportTravelData = async () => {
+  try {
+    const trips = await apiRequest('/api/trips');
+    const [profile, tripData] = await Promise.all([
+      apiRequest('/api/profile'),
+      Promise.all(trips.map(async (trip) => ({
+        ...trip,
+        tickets: await apiRequest(`/api/trips/${trip.id}/tickets`),
+        expenses: await apiRequest(`/api/trips/${trip.id}/expenses`)
+      })))
+    ]);
+    downloadFile('donnees-voyage-saik.json', JSON.stringify({ profile, trips: tripData }, null, 2), 'application/json');
+    announce('Données de voyage exportées depuis H2.');
+  } catch (error) {
+    announceRequestError('Impossible d’exporter les données', error);
+  }
+};
+
+
+function initializeProfile() {
+  document.getElementById('birthDate')?.addEventListener('input', updateAgePreview);
+}
+
+export { initializeProfile };
